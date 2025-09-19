@@ -6,7 +6,6 @@ Created on Mon Nov 18 12:15:01 2024
 """
 
 #%% Packages
-
 import streamlit as st
 from st_flexible_callout_elements import flexible_callout, flexible_error, flexible_success, flexible_warning, flexible_info
 import streamlit.components.v1 as components
@@ -524,12 +523,12 @@ with visualisingTab:
             with c4 :
                 st.write('To download the IR sections datas along n and m, click on the buttons.')
                 if st.button('Download .txt along m') :
-                    np.savetxt(Saved_path+filename+"_sections_m"+str(y_select)+".txt", cube[:,x_select,:], fmt='%-10.8f', delimiter=';')
-                    if filename+"_sections_m"+str(y_select)+".txt" in os.listdir(Saved_path):
+                    np.savetxt(Saved_path+filename+"_sections_m"+str(st.session_state.y_select)+".txt", cube[:,st.session_state.x_select,:], fmt='%-10.8f', delimiter=';')
+                    if filename+"_sections_m"+str(st.session_state.y_select)+".txt" in os.listdir(Saved_path):
                         st.write("Succesfully downloaded")
                 if st.button('Download .txt along n') :
-                    np.savetxt(Saved_path+filename+"_sections_n"+str(x_select)+".txt", cube[y_select,:,:], fmt='%-10.8f', delimiter=';')
-                    if filename+"_sections_n"+str(x_select)+".txt"  in os.listdir(Saved_path):
+                    np.savetxt(Saved_path+filename+"_sections_n"+str(st.session_state.x_select)+".txt", cube[st.session_state.y_select,:,:], fmt='%-10.8f', delimiter=';')
+                    if filename+"_sections_n"+str(st.session_state.x_select)+".txt"  in os.listdir(Saved_path):
                         st.write("Succesfully downloaded")
         else :
             fig_topo = map_plots(st.session_state.cube_topo, 103, 'lower', 'Deflection', 'Topography map', 810, 600, 500, st.session_state.n, st.session_state.m, 'TOPO', st.session_state.x, st.session_state.y, st.session_state.xy_unit, None)
