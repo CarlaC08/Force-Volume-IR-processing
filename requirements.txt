@@ -4,6 +4,7 @@ nanoscope==1.2.300
 plotly==5.24.1
 mpld3==0.5.10
 streamlit-plotly-events==0.0.6
+st-flexible-callout-elements
 lmfit==1.3.1
 joblib==1.4.0
 pandas==2.2.2
