@@ -523,11 +523,11 @@ with visualisingTab:
             with c4 :
                 st.write('To download the IR sections datas along n and m, click on the buttons.')
                 if st.button('Download .txt along m') :
-                    np.savetxt(Saved_path+filename+"_sections_m"+str(st.session_state.y_select)+".txt", cube[:,st.session_state.x_select,:], fmt='%-10.8f', delimiter=';')
+                    np.savetxt(Saved_path+filename+"_sections_m"+str(st.session_state.y_select)+".txt", st.session_state.cube[:,st.session_state.x_select,:], fmt='%-10.8f', delimiter=';')
                     if filename+"_sections_m"+str(st.session_state.y_select)+".txt" in os.listdir(Saved_path):
                         st.write("Succesfully downloaded")
                 if st.button('Download .txt along n') :
-                    np.savetxt(Saved_path+filename+"_sections_n"+str(st.session_state.x_select)+".txt", cube[st.session_state.y_select,:,:], fmt='%-10.8f', delimiter=';')
+                    np.savetxt(Saved_path+filename+"_sections_n"+str(st.session_state.x_select)+".txt", st.session_state.cube[st.session_state.y_select,:,:], fmt='%-10.8f', delimiter=';')
                     if filename+"_sections_n"+str(st.session_state.x_select)+".txt"  in os.listdir(Saved_path):
                         st.write("Succesfully downloaded")
         else :
