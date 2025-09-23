@@ -854,7 +854,7 @@ with loadingTab:
                 with i :
                     try:
                         k_to_plot = next(k)
-                        with st.popover('Colorscale parameters', use_container_width=True):
+                        with st.popover('Colorscale parameters', width = 'content'):
                             st.selectbox('Colorscale', st.session_state.colorscales, index=st.session_state[k_to_plot+'_color_index'], key=k_to_plot+'_color'); st.number_input('Upper limit', value=np.nanmax(st.session_state[k_to_plot]), key=k_to_plot+'_max'); st.number_input('Lower limit', value=np.nanmin(st.session_state[k_to_plot]), key=k_to_plot+'_min')
                         st.session_state['plot_params_'+k_to_plot]['map_min']  = st.session_state[k_to_plot+'_min']; st.session_state['plot_params_'+k_to_plot]['map_max'] = st.session_state[k_to_plot+'_max']; st.session_state['plot_params_'+k_to_plot]['color_map'] = st.session_state[k_to_plot+'_color']
                         st.session_state['ax_'+k_to_plot] = st.session_state.func(**st.session_state['plot_params_'+k_to_plot])                        
