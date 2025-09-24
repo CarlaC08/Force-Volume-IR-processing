@@ -462,6 +462,8 @@ st.title('Force Volume IR : cube processing')
 configTab, visualisingTab, smoothingTab, peakrefTab, processingTab, loadingTab, infoTab = st.tabs(["Configuration", "Visualising" ,"Smoothing", "Peak referencing","Processing", "Loading", ":information_source: Information"])
 
 with configTab:
+    with st.sidebar:
+        with st.expander('See all the different colorscales'): st.write(px.colors.sequential.swatches_continuous())
     working_directory = Config()
     if working_directory == "" :
         st.error("Please, select a working directory") 
@@ -496,8 +498,6 @@ with visualisingTab:
             np.savetxt(Saved_path+filename+"_TOPO.txt", st.session_state.cube_topo, delimiter=';')
             toast_appearance()
             st.toast('Topography has been saved', icon=':material/check:', duration="infinite")
-        with st.sidebar:
-            with st.expander('See all the different colorscales'): st.write(px.colors.sequential.swatches_continuous())
         if st.toggle("Display IR sections along n and m axis") :
             with st.sidebar :
                 with st.expander('Parameters of the 3 figures') :
@@ -685,7 +685,7 @@ with processingTab:
                     flexible_success('Parameters of the SHO have been obtained for all (n, m) positions. The parameters are the following : maximal amplitude, B<sub>0</sub>, damping, FWHM and central frequency.')
                 else :
                     st.session_state.cube_Amp, st.session_state.cube_center, st.session_state.cube_x0, st.session_state.cube_FWHM, st.session_state.cube_Damping, st.session_state.cube_B0, st.session_state.cube_f0, st.session_state.cube_ymax = SHO_asym_parameters(st.session_state.frequencies, st.session_state.cube_to_process, st.session_state.n, st.session_state.m, st.session_state.params['freq_min'], st.session_state.params['freq_max'],st.session_state.params['y_lim'], st.session_state.params['window_freq'], st.session_state.params['FWHM0'], ncores)
-                    flexible_success('Parameters of the asymetric SHO have been obtained for all (n, m) positions. The parameters are the following : maximal amplitude, B0, damping, FWHM, central frequency f<sub>0</sub>, x<sub>0</sub> and g<sub>0</sub.')
+                    flexible_success('Parameters of the asymetric SHO have been obtained for all (n, m) positions. The parameters are the following : maximal amplitude, B<sub>0</sub>, damping, FWHM, central frequency f<sub>0</sub>, x<sub>0</sub> and g<sub>0</sub.')
         with c6_proc :
             if st.button('Compute the choosen function and datas integral.'):
                if st.session_state.SHO_choice == 'SHO' : st.session_state.cube_Area_SHO, st.session_state.cube_Area_raw, st.session_state.integration_window = area_computing(st.session_state.frequencies, st.session_state.cube_to_process, st.session_state.n, st.session_state.m, st.session_state.cube_B0, st.session_state.cube_Damping, st.session_state.cube_center, st.session_state.params['damping_threshold'], st.session_state.params['per_integrale'])
@@ -693,7 +693,7 @@ with processingTab:
         
         with c7_proc :
             with st.popover('Datas to save'):
-                st.checkbox('SHO area', value=True, key='SHO_area_save'); st.checkbox('SHO maximal amplitude', value=True, key='SHO_amp_save'); st.checkbox('Datas area', value=False, key='datas_area_save'); st.checkbox('Datas maximal amplitude', value=False, key='datas_amp_save'); st.checkbox('SHO central frequency', value=True, key='central_freq_save'); st.checkbox('SHO FWHM', value=False, key='SHO_FWHM_save'); st.checkbox('SHO damping', value=True, key='SHO_damping_save'); st.checkbox('Q factor', value=True, key='Q_factor_save'); st.checkbox('SHO B0 constant', value=False, key='SHO_B0_save')
+                st.checkbox('SHO area', value=True, key='SHO_area_save'); st.checkbox('SHO maximal amplitude', value=True, key='SHO_amp_save'); st.checkbox('Datas area', value=False, key='datas_area_save'); st.checkbox('Datas maximal amplitude', value=False, key='datas_amp_save'); st.checkbox('SHO central frequency', value=True, key='central_freq_save'); st.checkbox('SHO FWHM', value=False, key='SHO_FWHM_save'); st.checkbox('SHO damping', value=True, key='SHO_damping_save'); st.checkbox('Q factor', value=False, key='Q_factor_save'); st.checkbox('SHO B0 constant', value=False, key='SHO_B0_save')
                 if st.session_state.SHO_choice == 'ASHO' : st.checkbox('ASHO x0', value=False, key='SHO_x0_save'); st.checkbox('ASHO g0', value=False, key='SHO_f0_save')
                
         with c8_proc :
@@ -716,6 +716,7 @@ with processingTab:
                 if st.session_state.central_freq_save == True : np.savetxt(Saved_path+filename+"_F0-"+SHO_choice+"_"+freq+"kHz.txt", st.session_state.cube_center, delimiter=';')
                 if st.session_state.SHO_FWHM_save == True : np.savetxt(Saved_path+filename+"_FWHM-"+SHO_choice+"_"+freq+"kHz.txt", st.session_state.cube_FWHM, delimiter=';')
                 if st.session_state.SHO_damping_save == True : np.savetxt(Saved_path+filename+"_DAMPING-"+SHO_choice+"_"+freq+"kHz.txt", st.session_state.cube_Damping, delimiter=';')
+                if st.session_state.Q_factor_save == True : np.savetxt(Saved_path+filename+"_Q-factor-"+SHO_choice+"_"+freq+"kHz.txt", st.session_state.cube_Q, delimiter=';')
                 if st.session_state.SHO_B0_save == True : np.savetxt(Saved_path+filename+"_B0-"+SHO_choice+"_"+freq+"kHz.txt", st.session_state.cube_B0, delimiter=';')
                 try :
                     if st.session_state.SHO_x0_save == True : np.savetxt(Saved_path+filename+"_x0-ASHO_"+freq+"kHz.txt", st.session_state.cube_x0, delimiter=';')
