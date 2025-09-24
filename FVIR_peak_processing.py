@@ -329,7 +329,7 @@ def SHO_integrale(B0, D, f0, frequency, amplitude, half_int_wind, i, j):
 def SHO_plot(frequency, amplitude, test_choice, center, freq_min, freq_max, y_lim, f0_shift, window_freq, FWHM0, damping_threshold, per_integrale):
     half_window_freq, y, x = window_freq/2, amplitude[(frequency >= freq_min) & (frequency <= freq_max)], frequency[(frequency >= freq_min) & (frequency <= freq_max)]
     b=np.where(y==y.max())[0][0] # Find the max
-    if b < y_lim : st.write("The maximal amplitude is strictly inferior to your amplitude threshold. Choose an other position.")
+    if y[b] < y_lim : st.write("The maximal amplitude is strictly inferior to your amplitude threshold. Choose an other position.")
     else :
         condition = (frequency>=x[b]-half_window_freq) & (frequency<=x[b]+half_window_freq)
         model = Model(SHO, independent_vars=['f'], nan_policy='raise')
@@ -365,11 +365,11 @@ def SHO_parameters(x, y, n, m, freq_min, freq_max, y_lim, f0_shift, half_window_
     return cube_Amp, cube_f0, cube_FWHM, cube_Damping, cube_B0, cube_ymax
 
 @st.cache_data(max_entries=20, show_spinner="Computing the area to all the position")
-def area_computing(frequencies, amplitude, n, m, cube_B0, cube_Damping, cube_f0, damping_threshold,per_integrale):
+def area_computing(frequencies, amplitude, n, m, cube_B0, cube_Damping, cube_f0, damping_threshold, per_integrale):
     k, l = np.asarray(np.where(cube_Damping==np.nanmax(cube_Damping[cube_Damping<=damping_threshold])), dtype=int).reshape(2)
     st.write("Max damping :", np.round(np.nanmax(cube_Damping[cube_Damping<=damping_threshold]),2),"at coordinates : n=",k,', m=',l)
     smooth_d1 = np.gradient(SHO(cube_B0[k,l], cube_Damping[k,l], cube_f0[k,l], frequencies), frequencies/len(frequencies))
-    w, z = np.where(smooth_d1>=per_integrale*smooth_d1.max())[0][0], np.where(smooth_d1<=per_integrale*smooth_d1.min())[0][-1]
+    w, z = np.where(smooth_d1>=(per_integrale/100)*smooth_d1.max())[0][0], np.where(smooth_d1<=(per_integrale/100)*smooth_d1.min())[0][-1]
     integration_window = np.round(frequencies[z]-frequencies[w], 2)
     st.write('Integration window =',integration_window,' kHz')
     half_int_wind = (frequencies[z]-frequencies[w])/2
@@ -405,7 +405,7 @@ def multi_plot(frequency, cube, number, ymax, width, height, n_list, m_list, col
         fig.add_scatter(x = frequency, y = cube[n_list[i], m_list[i]], mode='lines', line_color=color_list[i], name='n='+str(n_list[i])+'; m='+str(m_list[i]))
     fig.update_yaxes(title='Amplitude (mV)', range=[0, y_max])
     fig.update_xaxes(title='Frequencies (kHz)', range=[min(frequency),max(frequency)])
-    st.plotly_chart(fig)
+    st.plotly_chart(fig, use_container_width=False)
 
 @st.cache_data(max_entries=10, show_spinner=False)
 def plot_results_pixels(cube, map_min, map_max, map_origin, color_map, colorbar_label, title, results_width, results_height, scale, bins_width, n, m, key, x=None, y=None, xy_unit=None):
@@ -422,12 +422,14 @@ def plot_results_pixels(cube, map_min, map_max, map_origin, color_map, colorbar_
     fig.update_yaxes(showticklabels=False, col=2); fig.update_xaxes(col=2, tickangle=45, type=scale)
     return fig
 
-def map_plots(cube, color_index, map_origin, colorbar_label, title, results_width, results_height, bins_width, n, m, key, x, y, xy_unit, scale_units):
+def map_plots(cube, color_index, map_origin, colorbar_label, title, results_width, results_height, bins_width_initial, n, m, key, x, y, xy_unit, scale_units):
     with st.popover('Map and colorscale parameters', help="Enter the parameters of the map. Important : doing a zoom on the histogram won't change the limit of the colorbar."):
         color_map = st.selectbox('Colorscale for the map', st.session_state.colorscales, index=color_index, key=key+'_color')
         c1, c2 = st.columns(2)
-        with c1 : map_max = st.number_input('Upper limit', value=np.nanmax(cube), key=key+'_max'); scale = st.radio('Count axis scale', ['linear', 'log'], horizontal=True, key=key+'_scale')
-        with c2 : map_min = st.number_input('Lower limit', value=np.nanmin(cube), key=key+'_min'); bins_width = st.number_input('Width of intervals', min_value=0.05, value=5., key=key+'_bins')    
+        if np.nanmax(cube) > 1e5 : vmax = 1e5
+        else : vmax = np.nanmax(cube)
+        with c1 : map_max = st.number_input('Upper limit', value=vmax, key=key+'_max'); scale = st.radio('Count axis scale', ['linear', 'log'], horizontal=True, key=key+'_scale')
+        with c2 : map_min = st.number_input('Lower limit', value=np.nanmin(cube), key=key+'_min'); bins_width = st.number_input('Width of intervals', min_value=0.05, value=float(bins_width_initial), key=key+'_bins')    
     if scale_units == None :
         with c1 :
             units = st.radio("Units to use:", ["Pixels", "Size"], key='units_'+key, horizontal=True)
@@ -500,13 +502,13 @@ with visualisingTab:
             with st.sidebar :
                 with st.expander('Parameters of the 3 figures') :
                     color_topo_map = st.selectbox('Colorscale for the topography map', st.session_state.colorscales, index=103, key='color_topo_map')
-                    c_max = st.number_input('Upper limit of the colorbar', value=np.max(st.session_state.cube_topo), key='c_max')
-                    c_min = st.number_input('Lower limit of the colorbar', value=np.min(st.session_state.cube_topo), key='c_min')
+                    c_l1, c_r1 = st.columns(2)
+                    with c_l1 : c_max = st.number_input('Upper limit of the colorbar', value=np.max(st.session_state.cube_topo), key='c_max')
+                    with c_r1 : c_min = st.number_input('Lower limit of the colorbar', value=np.min(st.session_state.cube_topo), key='c_min')
                     color_IR_section = st.selectbox('Colorscale for the IR sections map', st.session_state.colorscales, index=96, key='color_IR_section')
-                    IR_max = st.number_input('Upper limit of the colorbar', value=np.max(st.session_state.cube[:,0,50:]), key='IR_max')
-                    IR_min = st.number_input('Lower limit of the colorbar', value=0, key='IR_min')
-                    width_px = st.number_input('Width in pixels (for the 3 figure)', min_value=0, value=st.session_state.width_px, key='width_px')
-                    height_px = st.number_input('Height in pixels (for the 3 figure)', min_value=0, value=st.session_state.height_px, key='height_px')
+                    c_l2, c_r2 = st.columns(2)
+                    with c_l2 : IR_max = st.number_input('Upper limit of the colorbar', value=np.max(st.session_state.cube[:,0,50:]), key='IR_max'); width_px = st.number_input('Width in pixels (for the 3 figure)', min_value=0, value=st.session_state.width_px, key='width_px')
+                    with c_r2 : IR_min = st.number_input('Lower limit of the colorbar', value=0, key='IR_min'); height_px = st.number_input('Height in pixels (for the 3 figure)', min_value=0, value=st.session_state.height_px, key='height_px')
             c1, c2 = st.columns(2); c3, c4 = st.columns(2)
             with c1 :
                 fig1 = topo_plot(st.session_state.cube_topo, st.session_state.color_topo_map, st.session_state.c_max, st.session_state.c_min, st.session_state.width_px, st.session_state.height_px)
@@ -537,8 +539,9 @@ with visualisingTab:
             with st.sidebar:
                 with st.expander('Parameters of the frequency spectrum figures') :
                     choice = st.radio("Make a choice", ['Single plot', 'Multiple plot', 'Smoothing with Savitzky-Golay filter'])
-                    fig_width = st.number_input('Width of the figure in pixels', min_value=0, value=600, key='fig_width')
-                    fig_height = st.number_input('Height of the figure in pixels', min_value=0, value=400, key='fig_height')
+                    c_1, c_2 = st.columns(2)
+                    with c_1 : fig_width = st.number_input('Width of the figure in pixels', min_value=0, value=600, key='fig_width')
+                    with c_2 : fig_height = st.number_input('Height of the figure in pixels', min_value=0, value=400, key='fig_height')
                     if choice == 'Single plot':
                         n_0 = st.number_input('Choose a n', min_value=0, max_value=st.session_state.n)
                         m_0 = st.number_input('Choose a m', min_value=0, max_value=st.session_state.m)
@@ -546,10 +549,11 @@ with visualisingTab:
                             fig = px.line(x = st.session_state.frequencies, y = st.session_state.cube[n_0, m_0], labels=dict(x = "Frequencies (kHz)", y = 'Amplitude (mV)'),
                                           title = 'Raw data', width = st.session_state.fig_width, height = st.session_state.fig_height,
                                           range_x = [min(st.session_state.frequencies),max(st.session_state.frequencies)], range_y = [np.min(st.session_state.cube[n_0, m_0]), np.max(st.session_state.cube[n_0, m_0,100:])])
-                            st.plotly_chart(fig)
+                            st.plotly_chart(fig, use_container_width=False)
                     if choice == 'Multiple plot':
-                        number = st.number_input('How many frequency spectrum do you want to plot ?', min_value=2, max_value=10)
-                        y_max = st.number_input('Change the amplitude axis max limit', min_value=0, value=15, key = 'y_max')
+                        c_3, c_4 = st.columns(2)
+                        with c_3 : number = st.number_input('Number of frequency spectrum to plot', min_value=2, max_value=10)
+                        with c_4 : y_max = st.number_input('Change the amplitude axis max limit', min_value=0, value=15, key = 'y_max')
                         c7, c8, c9 = st.columns(3)
                         with c7: n_list = [st.number_input('n'+str(i), min_value=0, max_value=st.session_state.n-1, key = 'n_'+str(i)) for i in range(number)]
                         with c8 : m_list = [st.number_input('m'+str(i), min_value=0, max_value=st.session_state.m-1, key = 'm_'+str(i)) for i in range(number)]
@@ -564,7 +568,7 @@ with visualisingTab:
                             fig = px.line(x = st.session_state.frequencies, y = savgol_filter(st.session_state.cube[n_0, m_0],window_length,polyorder), labels=dict(x = "Frequencies (kHz)", y = 'Amplitude (mV)', legend='Raw'), title = 'Raw vs smoothed data', width = st.session_state.fig_width, height = st.session_state.fig_height, range_x = [min(st.session_state.frequencies),max(st.session_state.frequencies)], range_y = [np.min(st.session_state.cube[n_0, m_0]), np.max(st.session_state.cube[n_0, m_0,100:])])
                             fig.add_scatter(x = st.session_state.frequencies, y = st.session_state.cube[n_0, m_0], mode='lines', zorder=10)
                             fig.update_traces(selector = 0, line_color=st.session_state.color_smoothed, name='Smoothed', showlegend=True);  fig.update_traces(selector = 1, line_color=st.session_state.color_raw, name='Raw')
-                            st.plotly_chart(fig)
+                            st.plotly_chart(fig, use_container_width=False)
 
 with smoothingTab:
     if st.session_state.FV_upload == True :
@@ -581,10 +585,19 @@ with smoothingTab:
                 if st.form_submit_button('Time to smooth'):
                     cube_smoothed = smoothing_SG(st.session_state.cube, st.session_state.frequencies, window_length, polyorder, st.session_state.n, st.session_state.m, st.session_state.l, sub_f_min, sub_f_max)
                     st.session_state.cube_smoothed = cube_smoothed
-        if 'cube_smoothed' in st.session_state:
-            with c2_p :
+            if filename+"_SMOOTHED.txt" in os.listdir(Saved_path):
+                st.info('Smoothed datas has been found in the "Processed directory", to load them click on the "Load" button.')
+                if st.button('Load') :
+                    SMOOTHED=Saved_path+filename+"_SMOOTHED.txt"
+                    with st.spinner('Loading...'):
+                        cube_smoothed=np.loadtxt(SMOOTHED, dtype=np.float64).reshape((st.session_state.n,st.session_state.m,st.session_state.l))
+                        st.session_state.cube_smoothed = cube_smoothed
+                    with open(SMOOTHED, 'r') as file_txt:
+                        st.write(file_txt.readline()[1:])
+        with c2_p :
+            if 'cube_smoothed' in st.session_state:
                 try :
-                    fig_smooth_IR = map_plots(np.trapz(st.session_state.cube_smoothed, st.session_state.frequencies), 38, 'lower', 'Integral (mV.kHz)', 'Integral on all the frequencies', 810, 600, 1000, st.session_state.n, st.session_state.m, 'SMOOTH', st.session_state.x, st.session_state.y, st.session_state.xy_unit, 'Pixels')
+                    fig_smooth_IR = map_plots(np.trapz(st.session_state.cube_smoothed, st.session_state.frequencies), 38, 'lower', 'Integral (mV.kHz)', 'Integral on all the frequencies', 810, 600, 1000.00, st.session_state.n, st.session_state.m, 'SMOOTH', st.session_state.x, st.session_state.y, st.session_state.xy_unit, 'Pixels')
                 except ValueError : st.write('')
                 else:
                     st.plotly_chart(fig_smooth_IR, False)
@@ -597,16 +610,6 @@ with smoothingTab:
                             file_txt.write('# Substract by mean between '+str(sub_f_min)+' to '+str(sub_f_max)+' kHz\n' + file_data) 
                     toast_appearance()
                     st.toast('Smoothed datas has been saved !', icon=':material/check:', duration="infinite")
-        if filename+"_SMOOTHED.txt" in os.listdir(Saved_path):
-            with c1_p:
-                st.info('Smoothed datas has been found in the "Processed directory", to load them click on the "Load" button.')
-                if st.button('Load') :
-                    SMOOTHED=Saved_path+filename+"_SMOOTHED.txt"
-                    with st.spinner('Loading...'):
-                        cube_smoothed=np.loadtxt(SMOOTHED, dtype=np.float64).reshape((st.session_state.n,st.session_state.m,st.session_state.l))
-                        st.session_state.cube_smoothed = cube_smoothed
-                    with open(SMOOTHED, 'r') as file_txt:
-                        st.write(file_txt.readline()[1:])
 
 with peakrefTab:
     if st.session_state.FV_upload == True :
@@ -685,13 +688,13 @@ with processingTab:
                     flexible_success('Parameters of the asymetric SHO have been obtained for all (n, m) positions. The parameters are the following : maximal amplitude, B0, damping, FWHM, central frequency f<sub>0</sub>, x<sub>0</sub> and g<sub>0</sub.')
         with c6_proc :
             if st.button('Compute the choosen function and datas integral.'):
-               if st.session_state.SHO_choice == 'SHO' : st.session_state.cube_Area_SHO, st.session_state.cube_Area_raw, st.session_state.integration_window = area_computing(st.session_state.frequencies, st.session_state.cube_to_process, st.session_state.n, st.session_state.m, st.session_state.cube_B0, st.session_state.cube_Damping, st.session_state.cube_center, st.session_state.params['freq_min'], st.session_state.params['freq_max'], st.session_state.params['damping_threshold'], st.session_state.params['per_integrale'])
+               if st.session_state.SHO_choice == 'SHO' : st.session_state.cube_Area_SHO, st.session_state.cube_Area_raw, st.session_state.integration_window = area_computing(st.session_state.frequencies, st.session_state.cube_to_process, st.session_state.n, st.session_state.m, st.session_state.cube_B0, st.session_state.cube_Damping, st.session_state.cube_center, st.session_state.params['damping_threshold'], st.session_state.params['per_integrale'])
                else : st.session_state.cube_Area_SHO, st.session_state.cube_Area_raw, st.session_state.integration_window = area_asym_computing(st.session_state.frequencies, st.session_state.cube_to_process, st.session_state.n, st.session_state.m, st.session_state.cube_B0, st.session_state.cube_Damping, st.session_state.cube_FWHM, st.session_state.cube_f0, st.session_state.cube_x0, st.session_state.cube_center, st.session_state.params['freq_min'], st.session_state.params['freq_max'], st.session_state.params['damping_threshold'], st.session_state.params['per_integrale'])
         
         with c7_proc :
             with st.popover('Datas to save'):
-                st.checkbox('SHO area', value=True, key='SHO_area_save'); st.checkbox('SHO maximal amplitude', value=True, key='SHO_amp_save'); st.checkbox('Datas area', value=False, key='datas_area_save'); st.checkbox('Datas maximal amplitude', value=False, key='datas_amp_save'); st.checkbox('SHO central frequency', value=True, key='central_freq_save'); st.checkbox('SHO FWHM', value=False, key='SHO_FWHM_save'); st.checkbox('SHO damping', value=True, key='SHO_damping_save'); st.checkbox('SHO B0 constant', value=False, key='SHO_B0_save')
-                if st.session_state.SHO_choice == 'ASHO' : st.checkbox('SHO x0', value=False, key='SHO_x0_save'); st.checkbox('SHO g0', value=False, key='SHO_f0_save')
+                st.checkbox('SHO area', value=True, key='SHO_area_save'); st.checkbox('SHO maximal amplitude', value=True, key='SHO_amp_save'); st.checkbox('Datas area', value=False, key='datas_area_save'); st.checkbox('Datas maximal amplitude', value=False, key='datas_amp_save'); st.checkbox('SHO central frequency', value=True, key='central_freq_save'); st.checkbox('SHO FWHM', value=False, key='SHO_FWHM_save'); st.checkbox('SHO damping', value=True, key='SHO_damping_save'); st.checkbox('Q factor', value=True, key='Q_factor_save'); st.checkbox('SHO B0 constant', value=False, key='SHO_B0_save')
+                if st.session_state.SHO_choice == 'ASHO' : st.checkbox('ASHO x0', value=False, key='SHO_x0_save'); st.checkbox('ASHO g0', value=False, key='SHO_f0_save')
                
         with c8_proc :
             if st.button('Save results'):
