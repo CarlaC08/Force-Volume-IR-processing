@@ -218,12 +218,13 @@ def SHO_asym_Fit(frequency, amplitude, min_freq, max_freq, ylim, window_freq, FW
         if np.abs(np.max(deriv_1))>np.abs(np.min(deriv_1)) : params = model.make_params(B0={'value':1e5, 'min':0}, x0={'value':2*x[b]}, f0={'value':x[b]}, D={'value': FWHM0/2, 'min':0.5})
         else : params = model.make_params(B0={'value':1e5, 'min':0}, x0={'value':0}, f0={'value':x[b]}, D={'value': FWHM0/2, 'min':0.5})        
         condition = (frequency >= x[b]-half_window_freq) & (frequency <= x[b]+half_window_freq)
-        out = model.fit(amplitude[condition], params, f=frequency[condition]).summary()
-        B0, D, f0, x0 = out['best_values']['B0'], out['best_values']['D'], out['best_values']['f0'], out['best_values']['x0']
+        out = model.fit(amplitude[condition], params, f=frequency[condition])
+        B0, D, f0, x0 = out.summary()['best_values']['B0'], out.summary()['best_values']['D'], out.summary()['best_values']['f0'], out.summary()['best_values']['x0']
         amp_max = max(SHO_asym(B0, frequency[condition], x0, f0, D))
         center = frequency[condition][SHO_asym(B0, frequency[condition], x0, f0, D)==amp_max][0]
-    else : D, amp_max, center, B0, f0, x0 = 0, 0, x[b], 0, 0, 0
-    return D, amp_max, center, B0, f0, x0, y[b]
+        R2 = out.rsquared
+    else : D, amp_max, center, B0, f0, x0, R2 = 0, 0, x[b], 0, 0, 0, np.nan
+    return D, amp_max, center, B0, f0, x0, y[b], R2
 
 def SHO_asym_integrale(B0, D, f0, x0, center, frequency, amplitude, half_int_wind, i, j):
     condition = (frequency>=center-half_int_wind)&(frequency<=center+half_int_wind)
@@ -237,10 +238,10 @@ def SHO_asym_parameters(frequency, amplitude, n, m, freq_min, freq_max, ylim, wi
     parallel = Parallel(n_jobs=ncores, return_as="generator", verbose=1)
     output_generator = parallel(delayed(SHO_asym_Fit)(frequency, amplitude[i, j], freq_min, freq_max, ylim, window_freq, FWHM0, i, j) for i in range(n) for j in range(m))
     res=list(output_generator)
-    cube_Damping, cube_Amp, cube_center, cube_B0, cube_f0, cube_x0, cube_ymax = np.asarray(res).T
-    cube_Damping, cube_Amp, cube_center, cube_f0, cube_x0, cube_B0, cube_ymax = cube_Damping.reshape(n, m), cube_Amp.reshape(n, m), cube_center.reshape(n, m), cube_f0.reshape(n, m), cube_x0.reshape(n, m), cube_B0.reshape(n, m), cube_ymax.reshape(n, m)
+    cube_Damping, cube_Amp, cube_center, cube_B0, cube_f0, cube_x0, cube_ymax, cube_R2 = np.asarray(res).T
+    cube_Damping, cube_Amp, cube_center, cube_f0, cube_x0, cube_B0, cube_ymax, cube_R2 = cube_Damping.reshape(n, m), cube_Amp.reshape(n, m), cube_center.reshape(n, m), cube_f0.reshape(n, m), cube_x0.reshape(n, m), cube_B0.reshape(n, m), cube_ymax.reshape(n, m), cube_R2.reshape(n, m)
     cube_FWHM = 2*cube_Damping
-    return cube_Amp, cube_center, cube_x0, cube_FWHM, cube_Damping, cube_B0, cube_f0, cube_ymax
+    return cube_Amp, cube_center, cube_x0, cube_FWHM, cube_Damping, cube_B0, cube_f0, cube_ymax, cube_R2
 
 @st.cache_data(max_entries=20, show_spinner="Computing the area to all the position")
 def area_asym_computing(frequency, amplitude, n, m, cube_B0, cube_Damping, cube_FWHM, cube_f0, cube_x0, cube_center, freq_min, freq_max, damping_threshold, per_integrale):
@@ -313,11 +314,12 @@ def SHO_Fit(frequency, amplitude, min_freq, max_freq, ylim, f0_shift, half_windo
     if y[b]>ylim:
             model = Model(SHO, independent_vars=['f'], nan_policy='raise')
             params = model.make_params(B0={'value':y[b], 'min':0}, D={'value': FWHM0/2, 'min':0.5}, f0={'value':x[b], 'min':x[b]-f0_shift, 'max':x[b]+f0_shift})
-            out = model.fit(amplitude[(frequency >= x[b]-half_window_freq) & (frequency <= x[b]+half_window_freq)], params, f=frequency[(frequency >= x[b]-half_window_freq) & (frequency <= x[b]+half_window_freq)]).summary()
-            b0, damping, center = out['best_values']['B0'], out['best_values']['D'], out['best_values']['f0']
+            out = model.fit(amplitude[(frequency >= x[b]-half_window_freq) & (frequency <= x[b]+half_window_freq)], params, f=frequency[(frequency >= x[b]-half_window_freq) & (frequency <= x[b]+half_window_freq)])
+            b0, damping, center = out.summary()['best_values']['B0'], out.summary()['best_values']['D'], out.summary()['best_values']['f0']
             amplitude = max(SHO(b0, damping, center, x))
-    else: damping, amplitude, center, b0 = 0, 0, x[b], 0
-    return damping, amplitude, center, b0, y[b]
+            R2 = out.rsquared
+    else: damping, amplitude, center, b0, R2 = 0, 0, x[b], 0, np.nan
+    return damping, amplitude, center, b0, y[b], R2
 
 def SHO_integrale(B0, D, f0, frequency, amplitude, half_int_wind, i, j):
     area_SHO = np.trapz(SHO(B0, D, f0, frequency[(frequency>=f0-half_int_wind)&(frequency<=f0+half_int_wind)]), frequency[(frequency>=f0-half_int_wind)&(frequency<=f0+half_int_wind)])
@@ -359,10 +361,10 @@ def SHO_parameters(x, y, n, m, freq_min, freq_max, y_lim, f0_shift, half_window_
     parallel = Parallel(n_jobs=ncores, return_as="generator", verbose=1)
     output_generator = parallel(delayed(SHO_Fit)(x, y[i, j], freq_min, freq_max, y_lim, f0_shift, half_window_freq, FWHM0, i, j) for i in range(n) for j in range(m))
     res=list(output_generator)
-    cube_Damping, cube_Amp, cube_f0, cube_B0, cube_ymax = np.asarray(res).T
-    cube_Damping, cube_Amp, cube_f0, cube_B0, cube_ymax = cube_Damping.reshape(n, m), cube_Amp.reshape(n, m), cube_f0.reshape(n, m), cube_B0.reshape(n, m), cube_ymax.reshape(n, m)
+    cube_Damping, cube_Amp, cube_f0, cube_B0, cube_ymax, cube_R2 = np.asarray(res).T
+    cube_Damping, cube_Amp, cube_f0, cube_B0, cube_ymax, cube_R2 = cube_Damping.reshape(n, m), cube_Amp.reshape(n, m), cube_f0.reshape(n, m), cube_B0.reshape(n, m), cube_ymax.reshape(n, m), cube_R2.reshape(n, m)
     cube_FWHM = 2*cube_Damping
-    return cube_Amp, cube_f0, cube_FWHM, cube_Damping, cube_B0, cube_ymax
+    return cube_Amp, cube_f0, cube_FWHM, cube_Damping, cube_B0, cube_ymax, cube_R2
 
 @st.cache_data(max_entries=20, show_spinner="Computing the area to all the position")
 def area_computing(frequencies, amplitude, n, m, cube_B0, cube_Damping, cube_f0, damping_threshold, per_integrale):
@@ -681,10 +683,10 @@ with processingTab:
                 if st.session_state.data_choice == 'Raw datas' : st.session_state.cube_to_process = st.session_state.cube
                 else : st.session_state.cube_to_process = st.session_state.cube_smoothed
                 if st.session_state.SHO_choice == 'SHO' :
-                    st.session_state.cube_Amp, st.session_state.cube_center, st.session_state.cube_FWHM, st.session_state.cube_Damping, st.session_state.cube_B0, st.session_state.cube_ymax = SHO_parameters(st.session_state.frequencies, st.session_state.cube_to_process, st.session_state.n, st.session_state.m, st.session_state.params['freq_min'], st.session_state.params['freq_max'],st.session_state.params['y_lim'],st.session_state.params['f0_shift'], st.session_state.params['window_freq'], st.session_state.params['FWHM0'], ncores)
+                    st.session_state.cube_Amp, st.session_state.cube_center, st.session_state.cube_FWHM, st.session_state.cube_Damping, st.session_state.cube_B0, st.session_state.cube_ymax, st.session_state.cube_R2 = SHO_parameters(st.session_state.frequencies, st.session_state.cube_to_process, st.session_state.n, st.session_state.m, st.session_state.params['freq_min'], st.session_state.params['freq_max'],st.session_state.params['y_lim'],st.session_state.params['f0_shift'], st.session_state.params['window_freq'], st.session_state.params['FWHM0'], ncores)
                     flexible_success('Parameters of the SHO have been obtained for all (n, m) positions. The parameters are the following : maximal amplitude, B<sub>0</sub>, damping, FWHM and central frequency.')
                 else :
-                    st.session_state.cube_Amp, st.session_state.cube_center, st.session_state.cube_x0, st.session_state.cube_FWHM, st.session_state.cube_Damping, st.session_state.cube_B0, st.session_state.cube_f0, st.session_state.cube_ymax = SHO_asym_parameters(st.session_state.frequencies, st.session_state.cube_to_process, st.session_state.n, st.session_state.m, st.session_state.params['freq_min'], st.session_state.params['freq_max'],st.session_state.params['y_lim'], st.session_state.params['window_freq'], st.session_state.params['FWHM0'], ncores)
+                    st.session_state.cube_Amp, st.session_state.cube_center, st.session_state.cube_x0, st.session_state.cube_FWHM, st.session_state.cube_Damping, st.session_state.cube_B0, st.session_state.cube_f0, st.session_state.cube_ymax, st.session_state.cube_R2 = SHO_asym_parameters(st.session_state.frequencies, st.session_state.cube_to_process, st.session_state.n, st.session_state.m, st.session_state.params['freq_min'], st.session_state.params['freq_max'],st.session_state.params['y_lim'], st.session_state.params['window_freq'], st.session_state.params['FWHM0'], ncores)
                     flexible_success('Parameters of the asymetric SHO have been obtained for all (n, m) positions. The parameters are the following : maximal amplitude, B<sub>0</sub>, damping, FWHM, central frequency f<sub>0</sub>, x<sub>0</sub> and g<sub>0</sub.')
         with c6_proc :
             if st.button('Compute the choosen function and datas integral.'):
@@ -693,7 +695,7 @@ with processingTab:
         
         with c7_proc :
             with st.popover('Datas to save'):
-                st.checkbox('SHO area', value=True, key='SHO_area_save'); st.checkbox('SHO maximal amplitude', value=True, key='SHO_amp_save'); st.checkbox('Datas area', value=False, key='datas_area_save'); st.checkbox('Datas maximal amplitude', value=False, key='datas_amp_save'); st.checkbox('SHO central frequency', value=True, key='central_freq_save'); st.checkbox('SHO FWHM', value=False, key='SHO_FWHM_save'); st.checkbox('SHO damping', value=True, key='SHO_damping_save'); st.checkbox('Q factor', value=False, key='Q_factor_save'); st.checkbox('SHO B0 constant', value=False, key='SHO_B0_save')
+                st.checkbox('SHO area', value=True, key='SHO_area_save'); st.checkbox('SHO maximal amplitude', value=True, key='SHO_amp_save'); st.checkbox('Datas area', value=False, key='datas_area_save'); st.checkbox('Datas maximal amplitude', value=False, key='datas_amp_save'); st.checkbox('SHO central frequency', value=True, key='central_freq_save'); st.checkbox('SHO FWHM', value=False, key='SHO_FWHM_save'); st.checkbox('SHO damping', value=True, key='SHO_damping_save'); st.checkbox('Q factor', value=False, key='Q_factor_save'); st.checkbox('SHO B0 constant', value=False, key='SHO_B0_save'); st.checkbox('R² fit score', value=False, key='R2_save')
                 if st.session_state.SHO_choice == 'ASHO' : st.checkbox('ASHO x0', value=False, key='SHO_x0_save'); st.checkbox('ASHO g0', value=False, key='SHO_f0_save')
                
         with c8_proc :
@@ -718,6 +720,7 @@ with processingTab:
                 if st.session_state.SHO_damping_save == True : np.savetxt(Saved_path+filename+"_DAMPING-"+SHO_choice+"_"+freq+"kHz.txt", st.session_state.cube_Damping, delimiter=';')
                 if st.session_state.Q_factor_save == True : np.savetxt(Saved_path+filename+"_Q-factor-"+SHO_choice+"_"+freq+"kHz.txt", st.session_state.cube_Q, delimiter=';')
                 if st.session_state.SHO_B0_save == True : np.savetxt(Saved_path+filename+"_B0-"+SHO_choice+"_"+freq+"kHz.txt", st.session_state.cube_B0, delimiter=';')
+                if st.session_state.R2_save == True : np.savetxt(Saved_path+filename+"_R2-"+SHO_choice+"_"+freq+"kHz.txt", st.session_state.cube_R2, delimiter=';')
                 try :
                     if st.session_state.SHO_x0_save == True : np.savetxt(Saved_path+filename+"_x0-ASHO_"+freq+"kHz.txt", st.session_state.cube_x0, delimiter=';')
                     if st.session_state.SHO_f0_save == True : np.savetxt(Saved_path+filename+"_g0-ASHO_"+freq+"kHz.txt", st.session_state.cube_f0, delimiter=';')
@@ -740,20 +743,22 @@ with processingTab:
                 st.plotly_chart(ax1, use_container_width=False)
                 ax4 = map_plots(st.session_state.cube_Area_raw, 38, 'lower', "Area (mV.kHz)", 'd) Area integral of datas' , st.session_state.results_width, st.session_state.results_height, 100, st.session_state.n, st.session_state.m, 'ax4', st.session_state.x, st.session_state.y, st.session_state.xy_unit, st.session_state.map)
                 st.plotly_chart(ax4, use_container_width=False)
-                ax7 = map_plots(st.session_state.cube_Damping, 60, 'lower', 'Damping (kHz)', 'g) Damping' , st.session_state.results_width, st.session_state.results_height, 100, st.session_state.n, st.session_state.m, 'ax7', st.session_state.x, st.session_state.y, st.session_state.xy_unit, st.session_state.map)
+                ax7 = map_plots(st.session_state.cube_Damping, 60, 'lower', 'Damping (kHz)', 'g) Damping' , st.session_state.results_width, st.session_state.results_height, 5, st.session_state.n, st.session_state.m, 'ax7', st.session_state.x, st.session_state.y, st.session_state.xy_unit, st.session_state.map)
                 st.plotly_chart(ax7, use_container_width=False)
             with c2_res_3 :
-                ax2 = map_plots(st.session_state.cube_Amp, 38, 'lower', 'Amplitude (mV)', 'b) Max amplitude' , st.session_state.results_width, st.session_state.results_height, 100, st.session_state.n, st.session_state.m, 'ax2', st.session_state.x, st.session_state.y, st.session_state.xy_unit, st.session_state.map)
+                ax2 = map_plots(st.session_state.cube_Amp, 38, 'lower', 'Amplitude (mV)', 'b) Max amplitude' , st.session_state.results_width, st.session_state.results_height, 1, st.session_state.n, st.session_state.m, 'ax2', st.session_state.x, st.session_state.y, st.session_state.xy_unit, st.session_state.map)
                 st.plotly_chart(ax2, use_container_width=False)
-                ax5 = map_plots(st.session_state.cube_ymax, 38, 'lower', 'Amplitude (mV)', "e) Datas' maximal amplitude" , st.session_state.results_width, st.session_state.results_height, 100, st.session_state.n, st.session_state.m, 'ax5', st.session_state.x, st.session_state.y, st.session_state.xy_unit, st.session_state.map)
+                ax5 = map_plots(st.session_state.cube_ymax, 38, 'lower', 'Amplitude (mV)', "e) Datas' maximal amplitude" , st.session_state.results_width, st.session_state.results_height, 1, st.session_state.n, st.session_state.m, 'ax5', st.session_state.x, st.session_state.y, st.session_state.xy_unit, st.session_state.map)
                 st.plotly_chart(ax5, use_container_width=False)
-                ax8 = map_plots(st.session_state.cube_center, 86, 'lower', 'Frequency (kHz)', 'h) Central frequency' , st.session_state.results_width, st.session_state.results_height, 100, st.session_state.n, st.session_state.m, 'ax8', st.session_state.x, st.session_state.y, st.session_state.xy_unit, st.session_state.map)
+                ax8 = map_plots(st.session_state.cube_center, 86, 'lower', 'Frequency (kHz)', 'h) Central frequency' , st.session_state.results_width, st.session_state.results_height, 1, st.session_state.n, st.session_state.m, 'ax8', st.session_state.x, st.session_state.y, st.session_state.xy_unit, st.session_state.map)
                 st.plotly_chart(ax8, use_container_width=False)
             with c3_res_3 :
                 ax3 = map_plots(st.session_state.cube_topo, 103, 'lower', 'Deflection (nm)', 'c) Topography' , st.session_state.results_width, st.session_state.results_height, 100, st.session_state.n, st.session_state.m, 'ax3', st.session_state.x, st.session_state.y, st.session_state.xy_unit, st.session_state.map)
                 st.plotly_chart(ax3, use_container_width=False)
                 ax6 = map_plots(st.session_state.cube_Q, 96, 'lower', 'Q factor', 'f) Q factor' , st.session_state.results_width, st.session_state.results_height, 100, st.session_state.n, st.session_state.m, 'ax6', st.session_state.x, st.session_state.y, st.session_state.xy_unit, st.session_state.map)
                 st.plotly_chart(ax6, use_container_width=False)
+                ax9 = map_plots(st.session_state.cube_R2, 34, 'lower', 'R²', 'i) R² fit score' , st.session_state.results_width, st.session_state.results_height, 0.1, st.session_state.n, st.session_state.m, 'ax9', st.session_state.x, st.session_state.y, st.session_state.xy_unit, st.session_state.map)
+                st.plotly_chart(ax9, use_container_width=False)
 
 with loadingTab:
     if st.session_state.FV_upload == True :
