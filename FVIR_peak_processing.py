@@ -188,13 +188,16 @@ def extraction(filename):
 def smoothing(amplitude,frequency, window_length, polyorder, min_freq, max_freq):
     Y = savgol_filter(amplitude, window_length, polyorder)
     bkg = np.mean(Y[(frequency >= min_freq) & (frequency <= max_freq)])
-    return Y-bkg
+    return Y-bkg, bkg
 
 @st.cache_data(max_entries=1, show_spinner="Smoothing all the frequency spectra")
 def smoothing_SG(cube, frequencies, window_length, polyorder, n, m, l, sub_f_min, sub_f_max):
     parallel = Parallel(n_jobs=-1, return_as="generator", verbose=1)
     output_generator = parallel(delayed(smoothing)(cube[i, j], frequencies, window_length, polyorder, sub_f_min, sub_f_max) for i in range(n) for j in range(m))
-    return np.asarray(list(output_generator)).reshape(n,m,l)
+    res = list(output_generator)
+    cube_smoothed, carto_offset = np.asarray([i[0] for i in res]), np.asarray([i[1] for i in res])
+    cube_smoothed, carto_offset = cube_smoothed.reshape(n,m,l), carto_offset.reshape(n,m)
+    return cube_smoothed, carto_offset
 
 def save_datas(savename, datas_to_save):
     with open(savename, 'w') as outfile:
@@ -431,7 +434,7 @@ def map_plots(cube, color_index, map_origin, colorbar_label, title, results_widt
         if np.nanmax(cube) > 1e5 : vmax = 1e5
         else : vmax = np.nanmax(cube)
         with c1 : map_max = st.number_input('Upper limit', value=vmax, key=key+'_max'); scale = st.radio('Count axis scale', ['linear', 'log'], horizontal=True, key=key+'_scale')
-        with c2 : map_min = st.number_input('Lower limit', value=np.nanmin(cube), key=key+'_min'); bins_width = st.number_input('Width of intervals', min_value=0.05, value=float(bins_width_initial), key=key+'_bins')    
+        with c2 : map_min = st.number_input('Lower limit', value=np.nanmin(cube), key=key+'_min'); bins_width = st.number_input('Width of intervals', min_value=0.01, value=float(bins_width_initial), key=key+'_bins')    
     if scale_units == None :
         with c1 :
             units = st.radio("Units to use:", ["Pixels", "Size"], key='units_'+key, horizontal=True)
@@ -572,58 +575,67 @@ with visualisingTab:
                             fig.update_traces(selector = 0, line_color=st.session_state.color_smoothed, name='Smoothed', showlegend=True);  fig.update_traces(selector = 1, line_color=st.session_state.color_raw, name='Raw')
                             st.plotly_chart(fig, use_container_width=False)
 
-with smoothingTab:
+with smoothingTab:  
     if st.session_state.FV_upload == True :
-        c1_p, c2_p = st.columns([1,2])
-        with c1_p :
+        c1_p, c2_p = st.columns([2,1])
+        with c1_p:
             with st.form("Smoothing form") :
-                st.write("Choose your Savitsky-Golay filter's parameters.")
-                window_length = st.number_input('Window length', min_value=1, value=11)
-                polyorder = st.number_input('Polynome order', min_value=0, value=3)
-                st.write('Select a frequency range (kHz) where the offset can be calculated, then applied to all spectra.')
-                c1_bis, c2_bis = st.columns(2)
-                with c1_bis : sub_f_min = st.number_input('Start', min_value=min(st.session_state.frequencies), max_value=max(st.session_state.frequencies)-0.01)
-                with c2_bis : sub_f_max = st.number_input('End', min_value=min(st.session_state.frequencies)+0.01, max_value=max(st.session_state.frequencies))
-                if st.form_submit_button('Time to smooth'):
-                    cube_smoothed = smoothing_SG(st.session_state.cube, st.session_state.frequencies, window_length, polyorder, st.session_state.n, st.session_state.m, st.session_state.l, sub_f_min, sub_f_max)
-                    st.session_state.cube_smoothed = cube_smoothed
-            if filename+"_SMOOTHED.txt" in os.listdir(Saved_path):
-                st.info('Smoothed datas has been found in the "Processed directory", to load them click on the "Load" button.')
-                if st.button('Load') :
-                    SMOOTHED=Saved_path+filename+"_SMOOTHED.txt"
-                    with st.spinner('Loading...'):
-                        cube_smoothed=np.loadtxt(SMOOTHED, dtype=np.float64).reshape((st.session_state.n,st.session_state.m,st.session_state.l))
-                        st.session_state.cube_smoothed = cube_smoothed
-                    with open(SMOOTHED, 'r') as file_txt:
-                        st.write(file_txt.readline()[1:])
+                c1, c2 = st.columns(2)
+                with c1 : st.write("Choose your Savitsky-Golay filter's parameters.") ; window_length = st.number_input('Window length', min_value=1, value=11); polyorder = st.number_input('Polynome order', min_value=0, value=3)
+                with c2 : st.write('Select a frequency range (kHz) where the offset can be calculated, then applied to all spectra.'); sub_f_min = st.number_input('Start', min_value=min(st.session_state.frequencies), max_value=max(st.session_state.frequencies)-0.01); sub_f_max = st.number_input('End', min_value=min(st.session_state.frequencies)+0.01, max_value=max(st.session_state.frequencies))
+                if st.form_submit_button('Time to smooth'): st.session_state.cube_smoothed, st.session_state.carto_offset = smoothing_SG(st.session_state.cube, st.session_state.frequencies, window_length, polyorder, st.session_state.n, st.session_state.m, st.session_state.l, sub_f_min, sub_f_max)
         with c2_p :
+            if st.button('Save current smoothing results.') :
+                with st.spinner('Saving...'):
+                    save_datas(Saved_path+filename+"_SMOOTHED.txt", st.session_state.cube_smoothed)
+                    with open(Saved_path+filename+"_SMOOTHED.txt", 'r+') as file_txt: file_data = file_txt.read(); file_txt.seek(0, 0) ; file_txt.write('# Substract by mean between '+str(sub_f_min)+' to '+str(sub_f_max)+' kHz\n' + file_data) 
+                toast_appearance()
+                st.toast('Smoothed datas has been saved !', duration="infinite")
+            if st.button('Save integral of amplitude on all the frequency range.') :
+                with st.spinner('Saving...'):
+                    save_datas(Saved_path+filename+"_TOTAL-INTEGRAL.txt", np.trapz(st.session_state.cube_smoothed, st.session_state.frequencies))
+                    with open(Saved_path+filename+"_TOTAL-INTEGRA.txt", 'r+') as file_txt: file_data = file_txt.read(); file_txt.seek(0, 0) ; file_txt.write('# Substract by mean between '+str(sub_f_min)+' to '+str(sub_f_max)+' kHz\n' + file_data) 
+                toast_appearance()
+                st.toast('Smoothed datas has been saved !', duration="infinite")
+            if st.button('Save value offset results.') :
+                with st.spinner('Saving...'):
+                    save_datas(Saved_path+filename+"_OFFSET.txt", st.session_state.carto_offset)
+                    with open(Saved_path+filename+"_OFFSET.txt", 'r+') as file_txt: file_data = file_txt.read(); file_txt.seek(0, 0); file_txt.write('# Substract by mean between '+str(sub_f_min)+' to '+str(sub_f_max)+' kHz\n' + file_data) 
+                toast_appearance()
+                st.toast('Offset values has been saved !', duration="infinite")
+            if filename+"_SMOOTHED.txt" in os.listdir(Saved_path):
+                c1, c2 = st.columns([2,1], vertical_alignment='center')
+                with c1 : st.info('Smoothed datas has been found in the "Processed directory", to load them click on the "Load" button.')
+                with c2 :
+                    if st.button('Load') :
+                        SMOOTHED=Saved_path+filename+"_SMOOTHED.txt"
+                        with st.spinner('Loading...'): cube_smoothed=np.loadtxt(SMOOTHED, dtype=np.float64).reshape((st.session_state.n,st.session_state.m,st.session_state.l)); st.session_state.cube_smoothed = cube_smoothed
+                        with open(SMOOTHED, 'r') as file_txt: st.write(file_txt.readline()[1:])
+        c1_rs, c2_rs = st.columns(2)
+        with c1_rs :
             if 'cube_smoothed' in st.session_state:
-                try :
-                    fig_smooth_IR = map_plots(np.trapz(st.session_state.cube_smoothed, st.session_state.frequencies), 38, 'lower', 'Integral (mV.kHz)', 'Integral on all the frequencies', 810, 600, 1000.00, st.session_state.n, st.session_state.m, 'SMOOTH', st.session_state.x, st.session_state.y, st.session_state.xy_unit, 'Pixels')
-                except ValueError : st.write('')
-                else:
-                    st.plotly_chart(fig_smooth_IR, False)
-                if st.button('Save current smoothing results.') :
-                    with st.spinner('Saving...'):
-                        save_datas(Saved_path+filename+"_SMOOTHED.txt", st.session_state.cube_smoothed)
-                        with open(Saved_path+filename+"_SMOOTHED.txt", 'r+') as file_txt: 
-                            file_data = file_txt.read()     
-                            file_txt.seek(0, 0) 
-                            file_txt.write('# Substract by mean between '+str(sub_f_min)+' to '+str(sub_f_max)+' kHz\n' + file_data) 
-                    toast_appearance()
-                    st.toast('Smoothed datas has been saved !', icon=':material/check:', duration="infinite")
+                try : fig_smooth_IR = map_plots(np.trapz(st.session_state.cube_smoothed, st.session_state.frequencies), 38, 'lower', 'Integral (mV.kHz)', 'Integral on all the frequencies', 810, 600, 1000.00, st.session_state.n, st.session_state.m, 'SMOOTH', st.session_state.x, st.session_state.y, st.session_state.xy_unit, 'Pixels')
+                except ValueError : pass
+                else: st.plotly_chart(fig_smooth_IR, False)
+        with c2_rs :
+            if 'carto_offset' in st.session_state:
+                try : fig_offset = map_plots(st.session_state.carto_offset, 0, 'lower', 'Offset (mV)', 'Subtracted offset', 810, 600, 0.01, st.session_state.n, st.session_state.m, 'OFFSET', st.session_state.x, st.session_state.y, st.session_state.xy_unit, 'Pixels')
+                except ValueError : pass
+                else: st.plotly_chart(fig_offset, False)
 
 with peakrefTab:
     if st.session_state.FV_upload == True :
-        if filename+"_PeaksRef.csv" in os.listdir(Saved_path):
-            st.info('A peaks reference file has been found in your "Processed" folder, click ont the Load button to load this file.')
-            if st.button('Load', 'Peaks loading') :
-                st.session_state.df_Peaks_ref = pd.read_csv(Saved_path+filename+"_PeaksRef.csv", header=0, names=['Peak n°', 'center','freq_min','freq_max','y_lim', 'f0_shift', 'window_freq','FWHM0','damping_threshold','per_integrale'], index_col=0)
-        with st.form("my-form", clear_on_submit=True):
-            uploaded_file = st.file_uploader("To load a file with the peaks' parameters.")
-            submitted = st.form_submit_button("UPLOAD!")
-            if submitted and uploaded_file is not None:
-                st.session_state.df_Peaks_ref = pd.read_csv(uploaded_file, header=0, index_col=0)
+        c1, c2 = st.columns([3,1])
+        with c1 : 
+            with st.form("my-form", clear_on_submit=True):
+                uploaded_file = st.file_uploader("To load a file with the peaks' parameters.")
+                submitted = st.form_submit_button("UPLOAD!")
+                if submitted and uploaded_file is not None: st.session_state.df_Peaks_ref = pd.read_csv(uploaded_file, header=0, index_col=0)
+        with c2 : 
+            if filename+"_PeaksRef.csv" in os.listdir(Saved_path):
+                st.info('A peaks reference file has been found in your "Processed" folder, click ont the Load button to load this file.')
+                if st.button('Load', 'Peaks loading') : st.session_state.df_Peaks_ref = pd.read_csv(Saved_path+filename+"_PeaksRef.csv", header=0, names=['Peak n°', 'center','freq_min','freq_max','y_lim', 'f0_shift', 'window_freq','FWHM0','damping_threshold','per_integrale'], index_col=0)
+
         with st.form("Peak submit") :
             df_Peaks_ref = st.session_state.df_Peaks_ref
             df_Peaks_ref_edit = st.data_editor(df_Peaks_ref, num_rows="dynamic",
