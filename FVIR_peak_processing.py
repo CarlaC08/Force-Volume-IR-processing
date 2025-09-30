@@ -635,7 +635,6 @@ with peakrefTab:
             if filename+"_PeaksRef.csv" in os.listdir(Saved_path):
                 st.info('A peaks reference file has been found in your "Processed" folder, click ont the Load button to load this file.')
                 if st.button('Load', 'Peaks loading') : st.session_state.df_Peaks_ref = pd.read_csv(Saved_path+filename+"_PeaksRef.csv", header=0, names=['Peak n°', 'center','freq_min','freq_max','y_lim', 'f0_shift', 'window_freq','FWHM0','damping_threshold','per_integrale'], index_col=0)
-
         with st.form("Peak submit") :
             df_Peaks_ref = st.session_state.df_Peaks_ref
             df_Peaks_ref_edit = st.data_editor(df_Peaks_ref, num_rows="dynamic",
