@@ -3,7 +3,10 @@ name = "Force-Volume-IR-processing"
 version = "0.1.0"
 description = "A project to process .spm data cube from the Force-Volume AFM-IR acquisition mode."
 authors = [
-  { name="COLLANGE Carla", email="carla.collange@universite-paris-saclay.fr" }
+  { name="COLLANGE Carla", email="carla.collange@universite-paris-saclay.fr" },
+readme = "README.md"
+license = "MIT"
+keywords = ["AFMIR", "REFS", "Resonance Enhanced Frequency Sweep", "Infrared Force Volume"]
 ]
 requires-python = ">=3.9"
 dependencies = [
