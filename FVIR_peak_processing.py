@@ -388,9 +388,10 @@ def area_computing(frequencies, amplitude, n, m, cube_B0, cube_Damping, cube_f0,
 
 # @section: Fonctions plot
 @st.cache_data(max_entries=1, show_spinner=False)
-def topo_plot(cube_topo, color_topo_map, c_max, c_min, width_px, height_px, x_select=0, y_select=0) :
+def topo_plot(cube_topo, color_topo_map, x_select, y_select, c_max, c_min, width_px, height_px) :
     fig = go.Figure(layout=dict(title='Topography map', height=height_px, width=width_px, xaxis_title='m (pixel)', yaxis_title='n (pixel)'))
     fig.add_trace(go.Heatmap(z=cube_topo, zmin=c_min, zmax=c_max, colorscale=color_topo_map, hovertemplate ='n : %{y}' + '<extra></extra>' + '<br> m : %{x}' + '<br> Value : %{z}', colorbar_title='Deflection'))
+    fig.add_hline(y_select, line_dash="dash"); fig.add_vline(x_select, line_dash="dash")
     return fig
 
 @st.cache_data(max_entries=1, show_spinner=False)
@@ -505,6 +506,9 @@ with visualisingTab:
         if st.toggle("Display IR sections along n and m axis") :
             with st.sidebar :
                 with st.expander('Parameters of the 3 figures') :
+                    c_n, c_m = st.columns(2)
+                    with c_n : st.number_input('Enter a n value', min_value=0, max_value=st.session_state.n-1, key='y_select')
+                    with c_m : st.number_input('Enter a m value', min_value=0, max_value=st.session_state.m-1, key='x_select')
                     color_topo_map = st.selectbox('Colorscale for the topography map', st.session_state.colorscales, index=103, key='color_topo_map')
                     c_l1, c_r1 = st.columns(2)
                     with c_l1 : c_max = st.number_input('Upper limit of the colorbar', value=np.max(st.session_state.cube_topo), key='c_max')
@@ -515,16 +519,15 @@ with visualisingTab:
                     with c_r2 : IR_min = st.number_input('Lower limit of the colorbar', value=0, key='IR_min'); height_px = st.number_input('Height in pixels (for the 3 figure)', min_value=0, value=st.session_state.height_px, key='height_px')
             c1, c2 = st.columns(2); c3, c4 = st.columns(2)
             with c1 :
-                fig1 = topo_plot(st.session_state.cube_topo, st.session_state.color_topo_map, st.session_state.c_max, st.session_state.c_min, st.session_state.width_px, st.session_state.height_px)
-                selected_points = plotly_events(fig1, override_height=st.session_state.height_px)
-                if selected_points : st.session_state.x_select, st.session_state.y_select = selected_points[0]['x'], selected_points[0]['y']
+                fig1 = topo_plot(st.session_state.cube_topo, st.session_state.color_topo_map, st.session_state.x_select, st.session_state.y_select, st.session_state.c_max, st.session_state.c_min, st.session_state.width_px, st.session_state.height_px)
+                st.plotly_chart(fig1, False)
             with c2 :
                 fig2 = topo_IRsection_x(st.session_state.cube, st.session_state.frequencies, st.session_state.x_select, st.session_state.color_IR_section, st.session_state.IR_max, st.session_state.IR_min, st.session_state.width_px, st.session_state.height_px)
-                plotly_events(fig2, click_event=False, override_height=st.session_state.height_px)
+                st.plotly_chart(fig2, False)
             
             with c3 :
                 fig3 = topo_IRsection_y(st.session_state.cube, st.session_state.frequencies, st.session_state.y_select, st.session_state.color_IR_section, st.session_state.IR_max, st.session_state.IR_min, st.session_state.width_px, st.session_state.height_px)
-                plotly_events(fig3, click_event=False, override_height=st.session_state.height_px)
+                st.plotly_chart(fig3, False)
             with c4 :
                 st.write('To download the IR sections datas along n and m, click on the buttons.')
                 if st.button('Download .txt along m') :
