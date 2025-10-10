@@ -396,12 +396,14 @@ def topo_plot(cube_topo, color_topo_map, x_select, y_select, c_max, c_min, width
 
 @st.cache_data(max_entries=1, show_spinner=False)
 def topo_IRsection_x(cube, frequencies, x_select, color_IR_section, IR_max, IR_min, width_px, height_px) :
-    fig2=px.imshow(cube[:,x_select,:], color_continuous_scale=color_IR_section, aspect='auto', height=height_px, origin='lower', width=width_px, labels=dict(x="Frequencies (kHz)", y="n (pixel)", color="Amplitude"), x=frequencies, title='m='+str(x_select), zmin=IR_min, zmax=IR_max)
+    fig2 = go.Figure(layout=dict(title='m='+str(x_select), height=height_px, width=width_px, xaxis_title='Frequencies (kHz)', yaxis_title='n (pixel)'))
+    fig2.add_trace(go.Heatmap(z=cube[:,x_select,:], x=frequencies, zmin=IR_min, zmax=IR_max, colorscale=color_IR_section, hovertemplate ='n : %{y}' + '<extra></extra>' + '<br> Frequency (kHz) : %{x}' + '<br> Value : %{z}', colorbar_title='Amplitude'))
     return fig2
 
 @st.cache_data(max_entries=1, show_spinner=False)
 def topo_IRsection_y(cube, frequencies, y_select, color_IR_section, c_max, c_min, width_px, height_px) :
-    fig3=px.imshow(cube[y_select,:,:].T, color_continuous_scale=color_IR_section, aspect='auto', height=height_px, width=width_px, labels=dict(y="Frequencies (kHz)", x="m (pixel)", color="Amplitude"), y=frequencies, title='n='+str(y_select), zmin=IR_min, zmax=IR_max)
+    fig3 = go.Figure(layout=dict(title='n='+str(y_select), height=height_px, width=width_px, yaxis_title='Frequencies (kHz)', xaxis_title='m (pixel)'))
+    fig3.add_trace(go.Heatmap(z=cube[y_select,:,:].T, y=frequencies, zmin=IR_min, zmax=IR_max, colorscale=color_IR_section, hovertemplate ='m : %{x}' + '<br> Frequency (kHz)  : %{y}' + '<extra></extra>' +  '<br> Value : %{z}', colorbar_title='Amplitude'))
     return fig3
 
 @st.cache_data(max_entries=1)
