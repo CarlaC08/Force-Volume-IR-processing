@@ -4,8 +4,7 @@ Created on Mon Nov 18 12:15:01 2024
 
 @author: collange
 """
-
-# @section: Packages
+#%% Packages
 import streamlit as st
 from st_flexible_callout_elements import flexible_success
 from matplotlib.colors import *
@@ -26,9 +25,8 @@ from ctypes import wintypes, windll
 from pathlib import Path
 from scipy.signal import savgol_filter
 import win32api
-# @endsection: Packages
 
-# @section: Variables
+#%% Variables
 if 'original_path' not in st.session_state : st.session_state.original_path = os.getcwd()
 if 'drive' not in st.session_state : st.session_state.drive = os.getcwd()
 if 'root_path'  not in st.session_state : st.session_state.root_path = os.getcwd()
@@ -56,9 +54,8 @@ if 'cube_ymax' not in st.session_state : st.session_state.cube_ymax = []
 if 'loaded_datas' not in st.session_state : st.session_state.loaded_datas = {"cube_Area_SHO_l":False,"cube_Amp_l":False,"cube_topo_l":True, "cube_Area_raw_l":False,"cube_ymax_l":False,"cube_center_l":False,"cube_FWHM_l":False, "cube_Damping_l":False,"cube_B0_l":False,"cube_x0_l":False,"cube_g0_l":False,"cube_Q_l":False,"cube_R2_l":False}
 st.session_state.colorscales = [i for j in [[k, k+'_r'] for k in px.colors.named_colorscales()] for i in j]
 st.session_state.default_colors = ['#000000', '#FF0000', '#0E00FF', '#06FF00', '#FB00FF', '#FFB300', '#00E0FF', '#8D00FF', "#0E8C8E", "#539032"]
-# @endsection: Variables 
 
-# @section: Fonctions
+#%% Fonctions
 def toast_appearance():
     st.markdown(
         """
@@ -84,7 +81,7 @@ def reset_datas():
         try : del st.session_state[key]
         except KeyError : pass
 
-# @section: from https://discuss.streamlit.io/t/simple-folder-explorer/77765
+#from https://discuss.streamlit.io/t/simple-folder-explorer/77765
 def GetDesktopFolder():
     CSIDL_DESKTOP = 0
     _SHGetFolderPath = windll.shell32.SHGetFolderPathW
@@ -154,7 +151,7 @@ def select_file_cwd(wd):
 
 def new_rooth():
     st.session_state.root_path = st.session_state.drive; st.session_state.selected_folder = st.session_state.drive
-# @endsection: from https://discuss.streamlit.io/t/simple-folder-explorer/77765
+######
 
 @st.cache_data(max_entries=1, show_spinner="Extracting data")
 def extraction(filename):
@@ -191,9 +188,8 @@ def save_datas(savename, datas_to_save):
         for data_slice in datas_to_save:
             np.savetxt(outfile, data_slice, fmt='%-10.8f')
             outfile.write('# New slice\n')
-# @endsection: Fonctions 
 
-# @section: Fonctions fit SHO asymetric
+#%% Fonctions fit SHO asymetric
 def SHO_asym(B0, f, x0, f0, D):
     return B0/np.sqrt(((f-x0)**2-f0**2)**2+(D*(f-x0))**2)
 
@@ -292,9 +288,8 @@ def SHO_asym_plot(frequency, amplitude, test_choice, center, freq_min, freq_max,
         st.write('Damping = ', np.round(D,2),' kHz')
         st.write('Integration window =',integration_window,'kHz')
         st.write('Area of the asymetric SHO calculated on the integration range =',np.round(np.trapz(SHO_asym(B0, frequency[(frequency>=freq_center-(integration_window/2))&(frequency<=freq_center+(integration_window/2))], x0, f0, D), frequency[(frequency>=freq_center-(integration_window/2))&(frequency<=freq_center+(integration_window/2))]), 2), 'mV.kHz')
-# @endsection: Fonctions fit SHO asymetric
 
-# @section: Fonctions fit SHO
+#%% Fonctions fit SHO
 def SHO(B0, D, f0, f):
     return B0/np.sqrt(((2*np.pi*f0)**2-(2*np.pi*f)**2)**2+((D*2*np.pi)*(2*np.pi*f))**2)
 
@@ -370,9 +365,8 @@ def area_computing(frequencies, amplitude, n, m, cube_B0, cube_Damping, cube_f0,
     cube_Area_SHO, cube_Area_raw = np.asarray(res).T
     cube_Area_SHO, cube_Area_raw = cube_Area_SHO.reshape(n, m), cube_Area_raw.reshape(n, m)
     return cube_Area_SHO, cube_Area_raw, integration_window
-# @endsection: Fonctions fit SHO
 
-# @section: Fonctions plot
+#%% Fonctions plot
 @st.cache_data(max_entries=1, show_spinner=False)
 def topo_plot(cube_topo, color_topo_map, x_select, y_select, c_max, c_min, width_px, height_px) :
     fig = go.Figure(layout=dict(title='Topography map', height=height_px, width=width_px, xaxis_title='m (pixel)', yaxis_title='n (pixel)'))
@@ -447,9 +441,8 @@ def plot_results_size(cube, map_min, map_max, map_origin, color_map, colorbar_la
     fig.update_yaxes(ticks="outside", autorange=yorder, tickwidth=1, tickcolor='black', tickfont_color='black', title_font_color='black', ticklen=7, col=1)
     fig.update_yaxes(showticklabels=False, col=2); fig.update_xaxes(col=2, tickangle=45, type=scale)
     return fig
-# @endsection: Fonctions plot
 
-# Application
+#%% Application
 st.set_page_config(layout="wide")
 st.title('Force Volume IR : cube processing')
 configTab, visualisingTab, smoothingTab, peakrefTab, processingTab, loadingTab, infoTab = st.tabs(["Configuration", "Visualising" ,"Smoothing", "Peak referencing","Processing", "Loading", ":information_source: Information"])
