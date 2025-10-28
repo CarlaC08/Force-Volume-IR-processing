@@ -7,10 +7,7 @@ Created on Mon Nov 18 12:15:01 2024
 
 # @section: Packages
 import streamlit as st
-from st_flexible_callout_elements import flexible_callout, flexible_error, flexible_success, flexible_warning, flexible_info
-import streamlit.components.v1 as components
-from streamlit_plotly_events import plotly_events
-import matplotlib.pyplot as plt
+from st_flexible_callout_elements import flexible_success
 from matplotlib.colors import *
 import nanoscope as ns
 from nanoscope import files
@@ -18,9 +15,8 @@ from nanoscope.constants import METRIC
 import plotly.express as px
 from plotly.subplots import make_subplots
 import plotly.graph_objects as go
-import mpld3
 import itertools
-from lmfit import Model, Parameters, Parameter
+from lmfit import Model
 from joblib import Parallel, delayed
 import pandas as pd
 import numpy as np
@@ -28,7 +24,6 @@ import os as os
 import ctypes
 from ctypes import wintypes, windll
 from pathlib import Path
-import string
 from scipy.signal import savgol_filter
 import win32api
 # @endsection: Packages
@@ -39,15 +34,6 @@ if 'drive' not in st.session_state : st.session_state.drive = os.getcwd()
 if 'root_path'  not in st.session_state : st.session_state.root_path = os.getcwd()
 if 'selected_folder'  not in st.session_state : st.session_state.selected_folder = os.getcwd()
 if 'selected_path' not in st.session_state : st.session_state.selected_path = ""
-if 'n' not in st.session_state : st.session_state.n = 0
-if 'm' not in st.session_state : st.session_state.m = 0
-if 'l' not in st.session_state : st.session_state.l = 0
-if 'x' not in st.session_state : st.session_state.x = 0
-if 'y' not in st.session_state : st.session_state.y = 0
-if 'xy_unit' not in st.session_state : st.session_state.xy_unit = 0
-if 'frequencies' not in st.session_state : st.session_state.frequencies = []
-if 'cube' not in st.session_state : st.session_state.cube = []
-if 'cube_topo' not in st.session_state : st.session_state.cube_topo = []
 if 'width_px' not in st.session_state : st.session_state.width_px = 400
 if 'height_px' not in st.session_state : st.session_state.height_px = 400
 if 'x_select' not in st.session_state : st.session_state.x_select=0
@@ -67,9 +53,9 @@ if 'cube_Area_raw' not in st.session_state : st.session_state.cube_Area_raw = []
 if 'cube_x0' not in st.session_state : st.session_state.cube_x0 = []
 if 'cube_center' not in st.session_state : st.session_state.cube_center = []
 if 'cube_ymax' not in st.session_state : st.session_state.cube_ymax = []
-if 'loaded_datas' not in st.session_state : st.session_state.loaded_datas = {"cube_Area_SHO_l":False,"cube_Amp_l":False,"cube_topo_l":True, "cube_Area_raw_l":False,"cube_ymax_l":False,"cube_center_l":False,"cube_FWHM_l":False, "cube_Damping_l":False,"cube_B0_l":False,"cube_x0_l":False,"cube_g0_l":False,"cube_Q_l":False}
+if 'loaded_datas' not in st.session_state : st.session_state.loaded_datas = {"cube_Area_SHO_l":False,"cube_Amp_l":False,"cube_topo_l":True, "cube_Area_raw_l":False,"cube_ymax_l":False,"cube_center_l":False,"cube_FWHM_l":False, "cube_Damping_l":False,"cube_B0_l":False,"cube_x0_l":False,"cube_g0_l":False,"cube_Q_l":False,"cube_R2_l":False}
 st.session_state.colorscales = [i for j in [[k, k+'_r'] for k in px.colors.named_colorscales()] for i in j]
-st.session_state.default_colors = ['#000000', '#FF0000', '#0E00FF', '#06FF00', '#FB00FF', '#FFB300', '#00E0FF', '#8D00FF', '#AFB52E', '#2F6015']
+st.session_state.default_colors = ['#000000', '#FF0000', '#0E00FF', '#06FF00', '#FB00FF', '#FFB300', '#00E0FF', '#8D00FF', "#0E8C8E", "#539032"]
 # @endsection: Variables 
 
 # @section: Fonctions
@@ -260,6 +246,7 @@ def area_asym_computing(frequency, amplitude, n, m, cube_B0, cube_Damping, cube_
     else : z = np.where(smooth_d1<=(per_integrale/100)*smooth_d1.min())[0][-1]; w = 2*center_index-z
     try : integration_window = np.round(frequency[z]-frequency[w], 2)
     except IndexError : z=-1; integration_window = np.round(frequency[z]-frequency[w], 2)
+    if integration_window<0 : st.error('The integration windows is negative, please check the peaks parameters')
     st.write('Integration window =',integration_window,' kHz')
     half_int_wind = integration_window/2
     parallel = Parallel(n_jobs=-1, return_as="generator", verbose=1)
@@ -318,9 +305,8 @@ def SHO_Fit(frequency, amplitude, min_freq, max_freq, ylim, f0_shift, half_windo
             model = Model(SHO, independent_vars=['f'], nan_policy='raise')
             params = model.make_params(B0={'value':y[b], 'min':0}, D={'value': FWHM0/2, 'min':0.5}, f0={'value':x[b], 'min':x[b]-f0_shift, 'max':x[b]+f0_shift})
             out = model.fit(amplitude[(frequency >= x[b]-half_window_freq) & (frequency <= x[b]+half_window_freq)], params, f=frequency[(frequency >= x[b]-half_window_freq) & (frequency <= x[b]+half_window_freq)])
-            b0, damping, center = out.summary()['best_values']['B0'], out.summary()['best_values']['D'], out.summary()['best_values']['f0']
+            b0, damping, center, R2 = out.summary()['best_values']['B0'], out.summary()['best_values']['D'], out.summary()['best_values']['f0'], out.rsquared
             amplitude = max(SHO(b0, damping, center, x))
-            R2 = out.rsquared
     else: damping, amplitude, center, b0, R2 = 0, 0, x[b], 0, np.nan
     return damping, amplitude, center, b0, y[b], R2
 
@@ -472,8 +458,7 @@ with configTab:
     with st.sidebar:
         with st.expander('See all the different colorscales'): st.write(px.colors.sequential.swatches_continuous()); st.write(px.colors.diverging.swatches_continuous())
     working_directory = Config()
-    if working_directory == "" :
-        st.error("Please, select a working directory") 
+    if working_directory == "" : st.error("Please, select a working directory") 
     else : 
         if [i for i in os.listdir(working_directory) if i.endswith(".spm")] == []:
             st.error("No .spm files found")
@@ -485,6 +470,7 @@ with configTab:
             try : st.session_state.n, st.session_state.m, st.session_state.l, st.session_state.x, st.session_state.y, st.session_state.xy_unit, chan_name, fwt, st.session_state.frequencies, st.session_state.cube, st.session_state.cube_topo = extraction(working_directory+filename)
             except MemoryError : st.error('Volume allocation exceed the available space. Try another file.'); st.session_state.FV_upload = False
             except RuntimeError : st.error('This file is not a Force-Volume file.'); st.session_state.FV_upload = False
+            except OSError : st.error('The file cannot be read, maybe it is corrupted.')
             else : 
                 st.write('You selected the .spm file : ', str(filename))
                 st.write("File :", filename)
@@ -747,8 +733,8 @@ with processingTab:
             c1_e, c2_e, c3_e, c4_e = st.columns(4, vertical_alignment='center')
             with c1_e: results_height = st.number_input('Height in pixels', key='results_height', min_value=0, value=400)
             with c2_e: st.session_state.results_width = st.session_state.results_height*1.35; st.write('The width is {x} pixels.'.format(x=st.session_state.results_width))
-            with c3_e: st.radio('Select the origin of the map', ['upper', 'lower'], key='map_origin', index=0)
-            with c4_e: st.radio("Units to use:", ["Pixels", "Size"], key='map')
+            with c3_e: st.radio('Origin of the map:', ['lower', 'upper'], key='map_origin', index=0, horizontal=True)
+            with c4_e: st.radio("Units to use:", ["Pixels", "Size"], key='map', horizontal=True)
         try : st.session_state.cube_Q = st.session_state.cube_center/(2*st.session_state.cube_Damping)     
         except TypeError : pass
         try : DT = st.session_state.params['damping_threshold'].values[0]
@@ -756,25 +742,25 @@ with processingTab:
         if np.shape(st.session_state.cube_Area_SHO)!=(0,):
             c1_res_3, c2_res_3, c3_res_3 = st.columns(3)
             with c1_res_3 :
-                ax1 = map_plots(st.session_state.cube_Area_SHO, 38, 'lower', "Area (mV.kHz)", 'a) Area SHO function' , st.session_state.results_width, st.session_state.results_height, 100, st.session_state.n, st.session_state.m, 'ax1', st.session_state.x, st.session_state.y, st.session_state.xy_unit, st.session_state.map)
+                ax1 = map_plots(st.session_state.cube_Area_SHO, 38, st.session_state.map_origin, "Area (mV.kHz)", 'a) Area SHO function' , st.session_state.results_width, st.session_state.results_height, 100, st.session_state.n, st.session_state.m, 'ax1', st.session_state.x, st.session_state.y, st.session_state.xy_unit, st.session_state.map)
                 st.plotly_chart(ax1, use_container_width=False)
-                ax4 = map_plots(st.session_state.cube_Area_raw, 38, 'lower', "Area (mV.kHz)", 'd) Area integral of datas' , st.session_state.results_width, st.session_state.results_height, 100, st.session_state.n, st.session_state.m, 'ax4', st.session_state.x, st.session_state.y, st.session_state.xy_unit, st.session_state.map)
+                ax4 = map_plots(st.session_state.cube_Area_raw, 38, st.session_state.map_origin, "Area (mV.kHz)", 'd) Area integral of datas' , st.session_state.results_width, st.session_state.results_height, 100, st.session_state.n, st.session_state.m, 'ax4', st.session_state.x, st.session_state.y, st.session_state.xy_unit, st.session_state.map)
                 st.plotly_chart(ax4, use_container_width=False)
-                ax7 = map_plots(st.session_state.cube_Damping, 60, 'lower', 'Damping (kHz)', 'g) Damping' , st.session_state.results_width, st.session_state.results_height, 5, st.session_state.n, st.session_state.m, 'ax7', st.session_state.x, st.session_state.y, st.session_state.xy_unit, st.session_state.map)
+                ax7 = map_plots(st.session_state.cube_Damping, 60, st.session_state.map_origin, 'Damping (kHz)', 'g) Damping' , st.session_state.results_width, st.session_state.results_height, 5, st.session_state.n, st.session_state.m, 'ax7', st.session_state.x, st.session_state.y, st.session_state.xy_unit, st.session_state.map)
                 st.plotly_chart(ax7, use_container_width=False)
             with c2_res_3 :
-                ax2 = map_plots(st.session_state.cube_Amp, 38, 'lower', 'Amplitude (mV)', 'b) Max amplitude' , st.session_state.results_width, st.session_state.results_height, 1, st.session_state.n, st.session_state.m, 'ax2', st.session_state.x, st.session_state.y, st.session_state.xy_unit, st.session_state.map)
+                ax2 = map_plots(st.session_state.cube_Amp, 38, st.session_state.map_origin, 'Amplitude (mV)', 'b) Max amplitude' , st.session_state.results_width, st.session_state.results_height, 1, st.session_state.n, st.session_state.m, 'ax2', st.session_state.x, st.session_state.y, st.session_state.xy_unit, st.session_state.map)
                 st.plotly_chart(ax2, use_container_width=False)
-                ax5 = map_plots(st.session_state.cube_ymax, 38, 'lower', 'Amplitude (mV)', "e) Datas' maximal amplitude" , st.session_state.results_width, st.session_state.results_height, 1, st.session_state.n, st.session_state.m, 'ax5', st.session_state.x, st.session_state.y, st.session_state.xy_unit, st.session_state.map)
+                ax5 = map_plots(st.session_state.cube_ymax, 38, st.session_state.map_origin, 'Amplitude (mV)', "e) Datas' maximal amplitude" , st.session_state.results_width, st.session_state.results_height, 1, st.session_state.n, st.session_state.m, 'ax5', st.session_state.x, st.session_state.y, st.session_state.xy_unit, st.session_state.map)
                 st.plotly_chart(ax5, use_container_width=False)
-                ax8 = map_plots(st.session_state.cube_center, 86, 'lower', 'Frequency (kHz)', 'h) Central frequency' , st.session_state.results_width, st.session_state.results_height, 1, st.session_state.n, st.session_state.m, 'ax8', st.session_state.x, st.session_state.y, st.session_state.xy_unit, st.session_state.map)
+                ax8 = map_plots(st.session_state.cube_center, 86, st.session_state.map_origin, 'Frequency (kHz)', 'h) Central frequency' , st.session_state.results_width, st.session_state.results_height, 1, st.session_state.n, st.session_state.m, 'ax8', st.session_state.x, st.session_state.y, st.session_state.xy_unit, st.session_state.map)
                 st.plotly_chart(ax8, use_container_width=False)
             with c3_res_3 :
-                ax3 = map_plots(st.session_state.cube_topo, 103, 'lower', 'Deflection (nm)', 'c) Topography' , st.session_state.results_width, st.session_state.results_height, 100, st.session_state.n, st.session_state.m, 'ax3', st.session_state.x, st.session_state.y, st.session_state.xy_unit, st.session_state.map)
+                ax3 = map_plots(st.session_state.cube_topo, 103, st.session_state.map_origin, 'Deflection (nm)', 'c) Topography' , st.session_state.results_width, st.session_state.results_height, 100, st.session_state.n, st.session_state.m, 'ax3', st.session_state.x, st.session_state.y, st.session_state.xy_unit, st.session_state.map)
                 st.plotly_chart(ax3, use_container_width=False)
-                ax6 = map_plots(st.session_state.cube_Q, 96, 'lower', 'Q factor', 'f) Q factor' , st.session_state.results_width, st.session_state.results_height, 100, st.session_state.n, st.session_state.m, 'ax6', st.session_state.x, st.session_state.y, st.session_state.xy_unit, st.session_state.map)
+                ax6 = map_plots(st.session_state.cube_Q, 96, st.session_state.map_origin, 'Q factor', 'f) Q factor' , st.session_state.results_width, st.session_state.results_height, 100, st.session_state.n, st.session_state.m, 'ax6', st.session_state.x, st.session_state.y, st.session_state.xy_unit, st.session_state.map)
                 st.plotly_chart(ax6, use_container_width=False)
-                ax9 = map_plots(st.session_state.cube_R2, 34, 'lower', 'R²', 'i) R² fit score' , st.session_state.results_width, st.session_state.results_height, 0.005, st.session_state.n, st.session_state.m, 'ax9', st.session_state.x, st.session_state.y, st.session_state.xy_unit, st.session_state.map)
+                ax9 = map_plots(st.session_state.cube_R2, 34, st.session_state.map_origin, 'R²', 'i) R² fit score' , st.session_state.results_width, st.session_state.results_height, 0.005, st.session_state.n, st.session_state.m, 'ax9', st.session_state.x, st.session_state.y, st.session_state.xy_unit, st.session_state.map)
                 st.plotly_chart(ax9, use_container_width=False)
 
 with loadingTab:
@@ -795,7 +781,7 @@ with loadingTab:
                 if 'freq' not in st.session_state : st.session_state.freq = 0
                 freq = int(st.number_input('Frequency (kHz)'))
             with c2_2 :
-                with st.popover('Datas to load'): st.session_state.load_datas = st.checkbox('SHO area', value=True, key='SHO_area_load'); st.checkbox('SHO maximal amplitude', value=True, key='SHO_amp_load'); st.checkbox('Datas area', value=False, key='datas_area_load'); st.checkbox('Datas maximal amplitude', value=False, key='datas_amp_load'); st.checkbox('SHO central frequency', value=True, key='central_freq_load'); st.checkbox('SHO FWHM', value=False, key='SHO_FWHM_load'); st.checkbox('SHO damping', value=True, key='SHO_damping_load'); st.checkbox('SHO B0 constant', value=False, key='SHO_B0_load'); st.checkbox('SHO x0 (only asymetric SHO)', value=False, key='SHO_x0_load'); st.checkbox('SHO g0 (only asymetric SHO)', value=False, key='SHO_g0_load')
+                with st.popover('Datas to load'): st.session_state.load_datas = st.checkbox('SHO area', value=True, key='SHO_area_load'); st.checkbox('SHO maximal amplitude', value=True, key='SHO_amp_load'); st.checkbox('Datas area', value=False, key='datas_area_load'); st.checkbox('Datas maximal amplitude', value=False, key='datas_amp_load'); st.checkbox('SHO central frequency', value=True, key='central_freq_load'); st.checkbox('SHO FWHM', value=False, key='SHO_FWHM_load'); st.checkbox('SHO damping', value=True, key='SHO_damping_load'); st.checkbox('SHO B0 constant', value=False, key='SHO_B0_load'); st.checkbox('Asymetric SHO x0', value=False, key='SHO_x0_load'); st.checkbox('Asymetric SHO g0', value=False, key='SHO_g0_load'); st.checkbox('Fit score', value=False, key='SHO_R2_load')
             c2_3, c2_4 = st.columns(2, vertical_alignment='bottom')
             with c2_3 : DT = int(st.number_input('Damping threshold (kHz)'))
             with c2_4 : 
@@ -803,59 +789,71 @@ with loadingTab:
                     if st.session_state.SHO_area_load == True :
                         if filename+"_AIRE-"+str(fit_function_load)+"_"+str(freq)+"kHz_DThreshold_"+str(DT)+".txt" in load_file_list : st.session_state.cube_Area_SHO_l=np.loadtxt(LoadingPath+filename+"_AIRE-"+str(fit_function_load)+"_"+str(freq)+"kHz_DThreshold_"+str(DT)+".txt", dtype=np.float64, delimiter=';').reshape((st.session_state.n,st.session_state.m)); st.session_state.loaded_datas["cube_Area_SHO_l"] = True
                         elif filename+"_AREA-"+str(fit_function_load)+"_"+str(freq)+"kHz_DThreshold_"+str(DT)+".txt" in load_file_list : st.session_state.cube_Area_SHO_l=np.loadtxt(LoadingPath+filename+"_AREA-"+str(fit_function_load)+"_"+str(freq)+"kHz_DThreshold_"+str(DT)+".txt", dtype=np.float64, delimiter=';').reshape((st.session_state.n,st.session_state.m)); st.session_state.loaded_datas["cube_Area_SHO_l"] = True
-                        else : st.toast('SHO area file not found.', icon="🚨", duration="infinite")
+                        else : toast_appearance() ; st.toast('SHO area file not found.', icon="🚨", duration="infinite")
                     if st.session_state.SHO_amp_load == True :
                         if filename+"_AMP-"+str(fit_function_load)+"_"+str(freq)+"kHz.txt" in load_file_list : st.session_state.cube_Amp_l=np.loadtxt(LoadingPath+filename+"_AMP-"+str(fit_function_load)+"_"+str(freq)+"kHz.txt", dtype=np.float64, delimiter=';').reshape((st.session_state.n,st.session_state.m)); st.session_state.loaded_datas["cube_Amp_l"] = True
                         elif filename+"_AMP_"+str(freq)+"kHz.txt" in load_file_list : st.session_state.cube_Amp_l=np.loadtxt(LoadingPath+filename+"_AMP_"+str(freq)+"kHz.txt", dtype=np.float64, delimiter=';').reshape((st.session_state.n,st.session_state.m)); st.session_state.loaded_datas["cube_Amp_l"] = True
-                        else : st.toast('SHO amplitude file not found.', icon="🚨", duration="infinite")
+                        else : toast_appearance() ; st.toast('SHO amplitude file not found.', icon="🚨", duration="infinite")
                     if st.session_state.datas_area_load == True :
                         if filename+"_AIRE-raw_"+str(freq)+"kHz_DThreshold_"+str(DT)+".txt" in load_file_list : st.session_state.cube_Area_raw_l=np.loadtxt(LoadingPath+filename+"_AIRE-raw_"+str(freq)+"kHz_DThreshold_"+str(DT)+".txt", dtype=np.float64, delimiter=';').reshape((st.session_state.n,st.session_state.m)); st.session_state.loaded_datas["cube_Area_raw_l"] = True
                         elif filename+"_AREA-raw_"+str(freq)+"kHz_DThreshold_"+str(DT)+".txt" in load_file_list : st.session_state.cube_Area_raw_l=np.loadtxt(LoadingPath+filename+"_AREA-raw_"+str(freq)+"kHz_DThreshold_"+str(DT)+".txt", dtype=np.float64, delimiter=';').reshape((st.session_state.n,st.session_state.m)); st.session_state.loaded_datas["cube_Area_raw_l"] = True
-                        else : st.toast('Datas area file not found.', icon="🚨", duration="infinite")
+                        else : toast_appearance() ; st.toast('Datas area file not found.', icon="🚨", duration="infinite")
                     if st.session_state.datas_amp_load == True :
                         if filename+"_AMP-raw_"+str(freq)+"kHz.txt" in load_file_list : st.session_state.cube_ymax_l=np.loadtxt(LoadingPath+filename+"_datas-AMP_"+str(freq)+"kHz.txt", dtype=np.float64, delimiter=';').reshape((st.session_state.n,st.session_state.m)); st.session_state.loaded_datas["cube_ymax_l"] = True
                         elif filename+"_datas-AMP_"+str(freq)+"kHz.txt" in load_file_list : st.session_state.cube_ymax_l=np.loadtxt(LoadingPath+filename+"_datas-AMP_"+str(freq)+"kHz.txt", dtype=np.float64, delimiter=';').reshape((st.session_state.n,st.session_state.m)); st.session_state.loaded_datas["cube_ymax_l"] = True
-                        else : st.toast('Datas amplitude file not found.', icon="🚨", duration="infinite")
+                        else : toast_appearance() ; st.toast('Datas amplitude file not found.', icon="🚨", duration="infinite")
                     if st.session_state.central_freq_load == True :
                         if filename+"_F0-"+str(fit_function_load)+"_"+str(freq)+"kHz.txt" in load_file_list : st.session_state.cube_center_l=np.loadtxt(LoadingPath+filename+"_F0-"+str(fit_function_load)+"_"+str(freq)+"kHz.txt", dtype=np.float64, delimiter=';').reshape((st.session_state.n,st.session_state.m)); st.session_state.loaded_datas["cube_center_l"] = True
-                        if filename+"_F0_"+str(freq)+"kHz.txt" in load_file_list : st.session_state.cube_center_l=np.loadtxt(LoadingPath+filename+"_F0_"+str(freq)+"kHz.txt", dtype=np.float64, delimiter=';').reshape((st.session_state.n,st.session_state.m)); st.session_state.loaded_datas["cube_center_l"] = True
-                        else : st.toast('SHO central frequency file not found.', icon="🚨", duration="infinite")
+                        elif filename+"_F0_"+str(freq)+"kHz.txt" in load_file_list : st.session_state.cube_center_l=np.loadtxt(LoadingPath+filename+"_F0_"+str(freq)+"kHz.txt", dtype=np.float64, delimiter=';').reshape((st.session_state.n,st.session_state.m)); st.session_state.loaded_datas["cube_center_l"] = True
+                        else : toast_appearance() ; st.toast('SHO central frequency file not found.', icon="🚨", duration="infinite")
                     if st.session_state.SHO_FWHM_load == True :
                         if filename+"_FWHM-"+str(fit_function_load)+"_"+str(freq)+"kHz.txt" in load_file_list : st.session_state.cube_FWHM_l=np.loadtxt(LoadingPath+filename+"_FWHM-"+str(fit_function_load)+"_"+str(freq)+"kHz.txt", dtype=np.float64, delimiter=';').reshape((st.session_state.n,st.session_state.m)); st.session_state.loaded_datas["cube_FWHM_l"] = True
                         elif filename+"_FWMH_"+str(freq)+"kHz.txt" in load_file_list : st.session_state.cube_FWHM_l=np.loadtxt(LoadingPath+filename+"_FWMH_"+str(freq)+"kHz.txt", dtype=np.float64, delimiter=';').reshape((st.session_state.n,st.session_state.m)); st.session_state.loaded_datas["cube_FWHM_l"] = True
-                        else : st.toast('FWHM damping file not found.', icon="🚨", duration="infinite")
+                        else : toast_appearance() ; st.toast('FWHM damping file not found.', icon="🚨", duration="infinite")
                     if st.session_state.SHO_damping_load == True :
                         if filename+"_DAMPING-"+str(fit_function_load)+"_"+str(freq)+"kHz.txt" in load_file_list : st.session_state.cube_Damping_l=np.loadtxt(LoadingPath+filename+"_DAMPING-"+str(fit_function_load)+"_"+str(freq)+"kHz.txt", dtype=np.float64, delimiter=';').reshape((st.session_state.n,st.session_state.m)); st.session_state.loaded_datas["cube_Damping_l"] = True
                         elif filename+"_DAMPING_"+str(freq)+"kHz.txt" in load_file_list : st.session_state.cube_Damping_l=np.loadtxt(LoadingPath+filename+"_DAMPING_"+str(freq)+"kHz.txt", dtype=np.float64, delimiter=';').reshape((st.session_state.n,st.session_state.m)); st.session_state.loaded_datas["cube_Damping_l"] = True
-                        else : st.toast('SHO damping file not found.', icon="🚨", duration="infinite")
+                        else : toast_appearance() ; st.toast('SHO damping file not found.', icon="🚨", duration="infinite")
                     if st.session_state.SHO_B0_load == True :
                         if filename+"_B0-"+str(fit_function_load)+"_"+str(freq)+"kHz.txt" in load_file_list : st.session_state.cube_B0_l=np.loadtxt(LoadingPath+filename+"_B0-"+str(fit_function_load)+"_"+str(freq)+"kHz.txt", dtype=np.float64, delimiter=';').reshape((st.session_state.n,st.session_state.m)); st.session_state.loaded_datas["cube_B0_l"] = True
                         elif filename+"_B0_"+str(freq)+"kHz.txt" in load_file_list : st.session_state.cube_B0_l=np.loadtxt(LoadingPath+filename+"_B0_"+str(freq)+"kHz.txt", dtype=np.float64, delimiter=';').reshape((st.session_state.n,st.session_state.m)); st.session_state.loaded_datas["cube_B0_l"] = True
-                        else : st.toast('SHO B0 file not found.', icon="🚨", duration="infinite")
+                        else : toast_appearance() ; st.toast('SHO B0 file not found.', icon="🚨", duration="infinite")
                     if st.session_state.SHO_x0_load == True :
                         if filename+"_x0-ASHO_"+str(freq)+"kHz.txt" in load_file_list : st.session_state.cube_x0_l=np.loadtxt(LoadingPath+filename+"_x0-ASHO_"+str(freq)+"kHz.txt", dtype=np.float64, delimiter=';').reshape((st.session_state.n,st.session_state.m)); st.session_state.loaded_datas["cube_x0_l"] = True
-                        else : st.toast('Asymetric SHO x0 file not found.', icon="🚨", duration="infinite")
+                        else : toast_appearance() ; st.toast('Asymetric SHO x0 file not found.', icon="🚨", duration="infinite")
                     if st.session_state.SHO_g0_load == True :
                         if filename+"_g0-ASHO_"+str(freq)+"kHz.txt" in load_file_list : st.session_state.cube_g0_l=np.loadtxt(LoadingPath+filename+"_g0-ASHO_"+str(freq)+"kHz.txt", dtype=np.float64, delimiter=';').reshape((st.session_state.n,st.session_state.m)); st.session_state.loaded_datas["cube_g0_l"] = True
-                        else : st.toast('Asymetric SHO g0 file not found.', icon="🚨", duration="infinite")
+                        else : toast_appearance() ; st.toast('Asymetric SHO g0 file not found.', icon="🚨", duration="infinite")
+                    if st.session_state.SHO_R2_load == True :
+                        if filename+"_R2-"+str(fit_function_load)+"_"+str(freq)+"kHz.txt" in load_file_list : st.session_state.cube_R2_l=np.loadtxt(LoadingPath+filename+"_R2-"+str(fit_function_load)+"_"+str(freq)+"kHz.txt", dtype=np.float64, delimiter=';').reshape((st.session_state.n,st.session_state.m)); st.session_state.loaded_datas["cube_R2_l"] = True
+                        else : toast_appearance() ; st.toast('R² score fit file not found.', icon="🚨", duration="infinite")
                     st.session_state.cube_topo_l=st.session_state.cube_topo.copy()    
         load_to_plot=[i for i in st.session_state.loaded_datas if st.session_state.loaded_datas[i]==True]
+        with st.expander('General parameters of the results figures') :
+            c1_e, c2_e, c3_e, c4_e, c5_e = st.columns([0.15,0.25,0.15,0.15,0.15], vertical_alignment='center')
+            with c1_e: results_height = st.number_input('Height in pixels', key='results_height_load', min_value=0, value=400)
+            with c2_e: st.session_state.results_width_load = st.session_state.results_height_load*1.35; st.write('The width is {x} pixels.'.format(x=st.session_state.results_width))
+            with c3_e: st.radio('Origin of the map', ['lower', 'upper'], key='map_origin_load', index=0, horizontal=True)
+            with c4_e: st.radio("Units to use:", ["Pixels", "Size"], key='map_load', horizontal=True)
+            with c5_e: st.number_input("Number of plots to show per row.", min_value=1, value=3, key='plots_per_row')
+
         if sum(st.session_state.loaded_datas.values())>=2 :
             if ('cube_center_l' in st.session_state) and ('cube_Damping_l' in st.session_state) : st.session_state.cube_Q=st.session_state.cube_center_l/(2*st.session_state.cube_Damping_l)
-            if 'cube_Area_SHO_l' in st.session_state : st.session_state.plot_params_cube_Area_SHO_l = {'cube':st.session_state.cube_Area_SHO_l, 'color_index':38, 'map_origin':'lower', 'colorbar_label':"Area (mV.kHz)", 'title':'Area SHO function', 'results_width':st.session_state.results_width, 'results_height':st.session_state.results_height, 'bins_width_initial':100, 'n':st.session_state.n, 'm':st.session_state.m, 'key':'ax1_l', 'x':st.session_state.x, 'y':st.session_state.y, 'xy_unit':st.session_state.xy_unit, 'scale_units':st.session_state.map}
-            if 'cube_Amp_l' in st.session_state : st.session_state.plot_params_cube_Amp_l = {'cube':st.session_state.cube_Amp_l, 'color_index':38, 'map_origin':'lower', 'colorbar_label':"Amplitude (mV)", 'title':'Max amplitude SHO function', 'results_width':st.session_state.results_width, 'results_height':st.session_state.results_height,  'bins_width_initial':5, 'n':st.session_state.n, 'm':st.session_state.m, 'key':'ax2_l', 'x':st.session_state.x, 'y':st.session_state.y, 'xy_unit':st.session_state.xy_unit, 'scale_units':st.session_state.map}
-            if 'cube_Area_raw_l' in st.session_state : st.session_state.plot_params_cube_Area_raw_l = {'cube':st.session_state.cube_Area_raw_l, 'color_index':38, 'map_origin':'lower', 'colorbar_label':"Area (mV.kHz)", 'title':"Datas' area", 'results_width':st.session_state.results_width, 'results_height':st.session_state.results_height,  'bins_width_initial':100, 'n':st.session_state.n, 'm':st.session_state.m, 'key':'ax1_3', 'x':st.session_state.x, 'y':st.session_state.y, 'xy_unit':st.session_state.xy_unit, 'scale_units':st.session_state.map}
-            if 'cube_ymax_l' in st.session_state : st.session_state.plot_params_cube_Amp_l = {'cube':st.session_state.cube_ymax_l, 'color_index':38, 'map_origin':'lower', 'colorbar_label':"Amplitude (mV)", 'title':"Datas' max amplitude", 'results_width':st.session_state.results_width, 'results_height':st.session_state.results_height,  'bins_width_initial':5, 'n':st.session_state.n, 'm':st.session_state.m, 'key':'ax4_l', 'x':st.session_state.x, 'y':st.session_state.y, 'xy_unit':st.session_state.xy_unit, 'scale_units':st.session_state.map}
-            if 'cube_topo_l' in st.session_state : st.session_state.plot_params_cube_topo_l = {'cube':st.session_state.cube_topo, 'color_index':103, 'map_origin':'lower', 'colorbar_label':"Height (nm)", 'title':"Topography", 'results_width':st.session_state.results_width, 'results_height':st.session_state.results_height,  'bins_width_initial':500, 'n':st.session_state.n, 'm':st.session_state.m, 'key':'ax5_l', 'x':st.session_state.x, 'y':st.session_state.y, 'xy_unit':st.session_state.xy_unit, 'scale_units':st.session_state.map}
-            if 'cube_center_l' in st.session_state : st.session_state.plot_params_cube_center_l = {'cube':st.session_state.cube_center_l, 'color_index':86, 'map_origin':'lower', 'colorbar_label':"Frequency (kHz)", 'title':"Central frequency SHO function", 'results_width':st.session_state.results_width, 'results_height':st.session_state.results_height,  'bins_width_initial':1, 'n':st.session_state.n, 'm':st.session_state.m, 'key':'ax6_l', 'x':st.session_state.x, 'y':st.session_state.y, 'xy_unit':st.session_state.xy_unit, 'scale_units':st.session_state.map}
-            if 'cube_FWHM_l' in st.session_state : st.session_state.plot_params_cube_FWHM_l = {'cube':st.session_state.cube_FWHM_l, 'color_index':60, 'map_origin':'lower', 'colorbar_label':"Frequency (kHz)", 'title':"FWHM SHO function", 'results_width':st.session_state.results_width, 'results_height':st.session_state.results_height,  'bins_width_initial':1, 'n':st.session_state.n, 'm':st.session_state.m, 'key':'ax7_l', 'x':st.session_state.x, 'y':st.session_state.y, 'xy_unit':st.session_state.xy_unit, 'scale_units':st.session_state.map}
-            if 'cube_Damping_l' in st.session_state : st.session_state.plot_params_cube_Damping_l = {'cube':st.session_state.cube_Damping_l, 'color_index':60, 'map_origin':'lower', 'colorbar_label':"Frequency (kHz)", 'title':"Damping SHO function", 'results_width':st.session_state.results_width, 'results_height':st.session_state.results_height,  'bins_width_initial':1, 'n':st.session_state.n, 'm':st.session_state.m, 'key':'ax8_l', 'x':st.session_state.x, 'y':st.session_state.y, 'xy_unit':st.session_state.xy_unit, 'scale_units':st.session_state.map}
-            if 'cube_B0_l' in st.session_state : st.session_state.plot_params_cube_B0_l = {'cube':st.session_state.cube_B0_l, 'color_index':10, 'map_origin':'lower', 'colorbar_label':"B0", 'title':"B0 SHO function", 'results_width':st.session_state.results_width, 'results_height':st.session_state.results_height,  'bins_width_initial':1, 'n':st.session_state.n, 'm':st.session_state.m, 'key':'ax9_l', 'x':st.session_state.x, 'y':st.session_state.y, 'xy_unit':st.session_state.xy_unit, 'scale_units':st.session_state.map}
-            if 'cube_x0_l' in st.session_state : st.session_state.plot_params_cube_x0_l = {'cube':st.session_state.cube_x0_l, 'color_index':10, 'map_origin':'lower', 'colorbar_label':"x0", 'title':"x0 asymetric SHO function", 'results_width':st.session_state.results_width, 'results_height':st.session_state.results_height,  'bins_width_initial':1, 'n':st.session_state.n, 'm':st.session_state.m, 'key':'ax10_l', 'x':st.session_state.x, 'y':st.session_state.y, 'xy_unit':st.session_state.xy_unit, 'scale_units':st.session_state.map}
-            if 'cube_g0_l' in st.session_state : st.session_state.plot_params_cube_g0_l = {'cube':st.session_state.cube_g0_l, 'color_index':10, 'map_origin':'lower', 'colorbar_label':"g0", 'title':"g0 asymetric SHO function", 'results_width':st.session_state.results_width, 'results_height':st.session_state.results_height,  'bins_width_initial':1, 'n':st.session_state.n, 'm':st.session_state.m, 'key':'ax11_l', 'x':st.session_state.x, 'y':st.session_state.y, 'xy_unit':st.session_state.xy_unit, 'scale_units':st.session_state.map}            
-            if 'cube_Q_l' in st.session_state : st.session_state.plot_params_cube_Q_l = {'cube':st.session_state.cube_Q_l, 'color_index':10, 'map_origin':'lower', 'colorbar_label':"Q factor", 'title':"Q factor", 'results_width':st.session_state.results_width, 'results_height':st.session_state.results_height,  'bins_width_initial':1, 'n':st.session_state.n, 'm':st.session_state.m, 'key':'ax12_l', 'x':st.session_state.x, 'y':st.session_state.y, 'xy_unit':st.session_state.xy_unit, 'scale_units':st.session_state.map}
+            if 'cube_Area_SHO_l' in st.session_state : st.session_state.plot_params_cube_Area_SHO_l = {'cube':st.session_state.cube_Area_SHO_l, 'color_index':38, 'map_origin':st.session_state.map_origin_load, 'colorbar_label':"Area (mV.kHz)", 'title':'Area SHO function', 'results_width':st.session_state.results_width_load, 'results_height':st.session_state.results_height_load, 'bins_width_initial':100, 'n':st.session_state.n, 'm':st.session_state.m, 'key':'ax1_l', 'x':st.session_state.x, 'y':st.session_state.y, 'xy_unit':st.session_state.xy_unit, 'scale_units':st.session_state.map_load}
+            if 'cube_Amp_l' in st.session_state : st.session_state.plot_params_cube_Amp_l = {'cube':st.session_state.cube_Amp_l, 'color_index':38, 'map_origin':st.session_state.map_origin_load, 'colorbar_label':"Amplitude (mV)", 'title':'Max amplitude SHO function', 'results_width':st.session_state.results_width_load, 'results_height':st.session_state.results_height_load,  'bins_width_initial':5, 'n':st.session_state.n, 'm':st.session_state.m, 'key':'ax2_l', 'x':st.session_state.x, 'y':st.session_state.y, 'xy_unit':st.session_state.xy_unit, 'scale_units':st.session_state.map_load}
+            if 'cube_Area_raw_l' in st.session_state : st.session_state.plot_params_cube_Area_raw_l = {'cube':st.session_state.cube_Area_raw_l, 'color_index':38, 'map_origin':st.session_state.map_origin_load, 'colorbar_label':"Area (mV.kHz)", 'title':"Datas' area", 'results_width':st.session_state.results_width_load, 'results_height':st.session_state.results_heigh_loadt,  'bins_width_initial':100, 'n':st.session_state.n, 'm':st.session_state.m, 'key':'ax1_3', 'x':st.session_state.x, 'y':st.session_state.y, 'xy_unit':st.session_state.xy_unit, 'scale_units':st.session_state.map_load}
+            if 'cube_ymax_l' in st.session_state : st.session_state.plot_params_cube_Amp_l = {'cube':st.session_state.cube_ymax_l, 'color_index':38, 'map_origin':st.session_state.map_origin_load, 'colorbar_label':"Amplitude (mV)", 'title':"Datas' max amplitude", 'results_width':st.session_state.results_width_load, 'results_height':st.session_state.results_height_load,  'bins_width_initial':5, 'n':st.session_state.n, 'm':st.session_state.m, 'key':'ax4_l', 'x':st.session_state.x, 'y':st.session_state.y, 'xy_unit':st.session_state.xy_unit, 'scale_units':st.session_state.map_load}
+            if 'cube_topo_l' in st.session_state : st.session_state.plot_params_cube_topo_l = {'cube':st.session_state.cube_topo, 'color_index':103, 'map_origin':st.session_state.map_origin_load, 'colorbar_label':"Height (nm)", 'title':"Topography", 'results_width':st.session_state.results_width_load, 'results_height':st.session_state.results_height_load,  'bins_width_initial':500, 'n':st.session_state.n, 'm':st.session_state.m, 'key':'ax5_l', 'x':st.session_state.x, 'y':st.session_state.y, 'xy_unit':st.session_state.xy_unit, 'scale_units':st.session_state.map_load}
+            if 'cube_center_l' in st.session_state : st.session_state.plot_params_cube_center_l = {'cube':st.session_state.cube_center_l, 'color_index':86, 'map_origin':st.session_state.map_origin_load, 'colorbar_label':"Frequency (kHz)", 'title':"Central frequency SHO function", 'results_width':st.session_state.results_width_load, 'results_height':st.session_state.results_height_load,  'bins_width_initial':1, 'n':st.session_state.n, 'm':st.session_state.m, 'key':'ax6_l', 'x':st.session_state.x, 'y':st.session_state.y, 'xy_unit':st.session_state.xy_unit, 'scale_units':st.session_state.map_load}
+            if 'cube_FWHM_l' in st.session_state : st.session_state.plot_params_cube_FWHM_l = {'cube':st.session_state.cube_FWHM_l, 'color_index':60, 'map_origin':st.session_state.map_origin_load, 'colorbar_label':"Frequency (kHz)", 'title':"FWHM SHO function", 'results_width':st.session_state.results_width_load, 'results_height':st.session_state.results_height_load,  'bins_width_initial':1, 'n':st.session_state.n, 'm':st.session_state.m, 'key':'ax7_l', 'x':st.session_state.x, 'y':st.session_state.y, 'xy_unit':st.session_state.xy_unit, 'scale_units':st.session_state.map_load}
+            if 'cube_Damping_l' in st.session_state : st.session_state.plot_params_cube_Damping_l = {'cube':st.session_state.cube_Damping_l, 'color_index':60, 'map_origin':st.session_state.map_origin_load, 'colorbar_label':"Frequency (kHz)", 'title':"Damping SHO function", 'results_width':st.session_state.results_width_load, 'results_height':st.session_state.results_height_load,  'bins_width_initial':1, 'n':st.session_state.n, 'm':st.session_state.m, 'key':'ax8_l', 'x':st.session_state.x, 'y':st.session_state.y, 'xy_unit':st.session_state.xy_unit, 'scale_units':st.session_state.map_load}
+            if 'cube_B0_l' in st.session_state : st.session_state.plot_params_cube_B0_l = {'cube':st.session_state.cube_B0_l, 'color_index':10, 'map_origin':st.session_state.map_origin_load, 'colorbar_label':"B0", 'title':"B0 SHO function", 'results_width':st.session_state.results_width_load, 'results_height':st.session_state.results_height_load,  'bins_width_initial':1, 'n':st.session_state.n, 'm':st.session_state.m, 'key':'ax9_l', 'x':st.session_state.x, 'y':st.session_state.y, 'xy_unit':st.session_state.xy_unit, 'scale_units':st.session_state.map_load}
+            if 'cube_x0_l' in st.session_state : st.session_state.plot_params_cube_x0_l = {'cube':st.session_state.cube_x0_l, 'color_index':10, 'map_origin':st.session_state.map_origin_load, 'colorbar_label':"x0", 'title':"x0 asymetric SHO function", 'results_width':st.session_state.results_width_load, 'results_height':st.session_state.results_height_load,  'bins_width_initial':1, 'n':st.session_state.n, 'm':st.session_state.m, 'key':'ax10_l', 'x':st.session_state.x, 'y':st.session_state.y, 'xy_unit':st.session_state.xy_unit, 'scale_units':st.session_state.map_load}
+            if 'cube_g0_l' in st.session_state : st.session_state.plot_params_cube_g0_l = {'cube':st.session_state.cube_g0_l, 'color_index':10, 'map_origin':st.session_state.map_origin_load, 'colorbar_label':"g0", 'title':"g0 asymetric SHO function", 'results_width':st.session_state.results_width_load, 'results_height':st.session_state.results_height_load,  'bins_width_initial':1, 'n':st.session_state.n, 'm':st.session_state.m, 'key':'ax11_l', 'x':st.session_state.x, 'y':st.session_state.y, 'xy_unit':st.session_state.xy_unit, 'scale_units':st.session_state.map_load}            
+            if 'cube_Q_l' in st.session_state : st.session_state.plot_params_cube_Q_l = {'cube':st.session_state.cube_Q_l, 'color_index':10, 'map_origin':st.session_state.map_origin_load, 'colorbar_label':"Q factor", 'title':"Q factor", 'results_width':st.session_state.results_width_load, 'results_height':st.session_state.results_height_load,  'bins_width_initial':1, 'n':st.session_state.n, 'm':st.session_state.m, 'key':'ax12_l', 'x':st.session_state.x, 'y':st.session_state.y, 'xy_unit':st.session_state.xy_unit, 'scale_units':st.session_state.map_load}
+            if 'cube_R2_l' in st.session_state : st.session_state.plot_params_cube_R2_l = {'cube':st.session_state.cube_R2_l, 'color_index':34, 'map_origin':st.session_state.map_origin_load, 'colorbar_label':"R²", 'title':"R² fit score", 'results_width':st.session_state.results_width_load, 'results_height':st.session_state.results_height_load,  'bins_width_initial':0.005, 'n':st.session_state.n, 'm':st.session_state.m, 'key':'ax12_l', 'x':st.session_state.x, 'y':st.session_state.y, 'xy_unit':st.session_state.xy_unit, 'scale_units':st.session_state.map_load}
             k=iter(load_to_plot)
-            ls = st.columns(3)
+            ls = st.columns(st.session_state.plots_per_row)
             for i in itertools.cycle(ls) :
                 with i :
                     try:
