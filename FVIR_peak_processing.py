@@ -800,15 +800,19 @@ with peakrefTab:
 with processingTab:
     if st.session_state.FV_upload == True :
         if 'params' not in st.session_state : st.session_state.params = []       
-        c1_proc, c2_proc, c3_proc, c4_proc = st.columns(4, vertical_alignment='top')
-        data_choice = c1_proc.radio('Data to use', ['cube', 'cube_smoothed'], format_func= lambda x: {'cube':'Raw datas', 'cube_smoothed':'Smoothed Datas'}.get(x), horizontal=True)
-        fit_choice = c2_proc.radio('Fit function to use', ['ASHO', 'SHO', 'None'], key='fit_choice', format_func=lambda x: {'ASHO': "Asymetric SHO",'SHO': "SHO"}.get(x), horizontal=True)
-        choice_peak = c3_proc.number_input('Select a peak to fit', min_value=1, max_value=st.session_state.nbr_peak, step=1)
-        if np.shape(st.session_state.df_Peaks_ref.index.values) != (1,): st.session_state.params = dict(st.session_state.df_Peaks_ref.iloc[int(np.where(st.session_state.df_Peaks_ref.index==choice_peak)[0])])
-        else : st.session_state.params = dict(st.session_state.df_Peaks_ref.iloc[0])
-        ncores = c4_proc.number_input('Number of cores to use (-1 = max)', min_value=-1, max_value=os.cpu_count(), step=1)
-        st.divider()
-        c5_proc, c6_proc, c7_proc, c8_proc = st.columns(4, vertical_alignment='top')
+        with st.container(border=True):
+            st.write("1. Select the data and peak to use")
+            c1_proc, c2_proc, c3_proc, c4_proc = st.columns(4, vertical_alignment='top')
+            data_choice = c1_proc.radio('Data to use', ['cube', 'cube_smoothed'], format_func= lambda x: {'cube':'Raw datas', 'cube_smoothed':'Smoothed Datas'}.get(x), horizontal=True)
+            fit_choice = c2_proc.radio('Fit function to use', ['ASHO', 'SHO', 'None'], key='fit_choice', format_func=lambda x: {'ASHO': "Asymetric SHO",'SHO': "SHO"}.get(x), horizontal=True)
+            choice_peak = c3_proc.number_input('Select a peak to fit', min_value=1, max_value=st.session_state.nbr_peak, step=1)
+            if np.shape(st.session_state.df_Peaks_ref.index.values) != (1,): st.session_state.params = dict(st.session_state.df_Peaks_ref.iloc[int(np.where(st.session_state.df_Peaks_ref.index==choice_peak)[0])])
+            else : st.session_state.params = dict(st.session_state.df_Peaks_ref.iloc[0])
+            ncores = c4_proc.number_input('Number of cores to use (-1 = max)', min_value=-1, max_value=os.cpu_count(), step=1)
+        col_left, col_right = st.columns(2, border = True)
+        col_left.write("2. Process the selected peak with the selected fit function to use"); col_right.write("3. Save results of the peak")
+        c5_proc, c6_proc = col_left.columns(2, vertical_alignment='top')
+        c7_proc, c8_proc = col_right.columns(2, vertical_alignment='top')
         if c5_proc.button('Find parameters', type='primary') :
             st.session_state.cube_to_process = st.session_state[data_choice]
             st.session_state.datas_to_plot = []
