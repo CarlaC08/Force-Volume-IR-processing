@@ -807,6 +807,7 @@ with processingTab:
         if np.shape(st.session_state.df_Peaks_ref.index.values) != (1,): st.session_state.params = dict(st.session_state.df_Peaks_ref.iloc[int(np.where(st.session_state.df_Peaks_ref.index==choice_peak)[0])])
         else : st.session_state.params = dict(st.session_state.df_Peaks_ref.iloc[0])
         ncores = c4_proc.number_input('Number of cores to use (-1 = max)', min_value=-1, max_value=os.cpu_count(), step=1)
+        st.divider()
         c5_proc, c6_proc, c7_proc, c8_proc = st.columns(4, vertical_alignment='top')
         if c5_proc.button('Find parameters', type='primary') :
             st.session_state.cube_to_process = st.session_state[data_choice]
@@ -862,6 +863,8 @@ with processingTab:
             except AttributeError : pass
             st.success('Datas has been saved.')            
         
+        st.divider()
+
         #### Results plot
         with st.expander('General parameters of the results figures') :
             c1_e, c2_e, c3_e, c4_e = st.columns(4, vertical_alignment='center')
