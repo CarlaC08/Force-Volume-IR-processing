@@ -5,6 +5,8 @@ Created on Mon Nov 18 12:15:01 2024
 @author: collange
 """
 #%% Packages
+
+"test"
 import streamlit as st
 from st_flexible_callout_elements import flexible_success
 from matplotlib.colors import *
