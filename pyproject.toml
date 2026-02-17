@@ -6,7 +6,7 @@ authors = [
   { name="COLLANGE Carla", email="carla.collange@universite-paris-saclay.fr" }],
 readme = "README.md"
 license = "MIT"
-keywords = ["AFMIR", "REFS", "Resonance Enhanced Frequency Sweep", "Infrared Force Volume"]
+keywords = ["AFMIR", "REFS", "Resonance Enhanced Frequency Sweep", "Infrared Force Volume","FVIR"]
 
 requires-python = ">=3.9"
 dependencies = [
