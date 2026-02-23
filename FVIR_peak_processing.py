@@ -563,7 +563,7 @@ with configTab:
                 st.write('You selected the .spm file : ', str(filename))
                 st.write("File :", filename)
                 st.write("Key parameters in data cube:")
-                st.write("Pixels in XY =", str(st.session_state.n),"x",str(st.session_state.m))
+                st.write("Pixels in XY =", str(st.session_state.m),"x",str(st.session_state.n))
                 st.write("Size of the map = ",str(round(st.session_state.x,2)), 'x', str(round(st.session_state.y,2)),st.session_state.xy_unit)
                 st.write("Channel = ", chan_name)
                 st.write("Sweep parameter = ",fwt)
