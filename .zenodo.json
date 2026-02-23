@@ -4,20 +4,19 @@
         "name": "Collange, Carla",
         "orcid" : "0009-0000-2635-9351",
         "affiliation": "Institut de Chimie Physique, Université Paris-Saclay - CNRS, 91400 Orsay, France"
-    }],
-    "contributors":[
-      {
-      "name": "Dazzi, Alexandre",
-      "orcid": "0000-0001-5752-8461",
-      "affiliation": "Institut de Chimie Physique, Université Paris-Saclay - CNRS, 91400 Orsay, France",
-      "type" : "ProjectLeader"
-        },
-      {
+    },
+    {
+        "name": "Dazzi, Alexandre",
+        "orcid": "0000-0001-5752-8461",
+        "affiliation": "Institut de Chimie Physique, Université Paris-Saclay - CNRS, 91400 Orsay, France",
+        "type" : "ProjectLeader"
+    },
+    {
       "name": "MATHURIN, Jérémie",
       "orcid": "0000-0002-6769-6394",
       "affiliation": "Institut de Chimie Physique, Université Paris-Saclay - CNRS, 91400 Orsay, France",
       "type" : "ProjectLeader"
-      }
+    }
     ],
   "title": "Data processing for Frequency-sweep force volume AFM-IR",
   "license": "mit",
