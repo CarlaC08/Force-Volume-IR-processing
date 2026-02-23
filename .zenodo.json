@@ -1,107 +1,26 @@
 {
   "creators": [
-    {
-      "affiliation": [
-        {
-          "name": "Institut de Chimie Physique, Universit\u00e9 Paris-Saclay - CNRS, 91400 Orsay, France"
-        }
-      ],
-      "familyName": "COLLANGE",
-      "givenName": "Carla",
-      "name": "COLLANGE, Carla",
-      "nameIdentifiers": [],
-      "nameType": "Personal"
-    },
-    {
-      "familyName": "DAZZI",
-      "givenName": "Alexandre",
-      "name": "DAZZI, Alexandre",
-      "nameIdentifiers": [
-        {
-          "nameIdentifier": "0000-0001-5752-8461",
-          "nameIdentifierScheme": "ORCID"
-        }
-      ],
-      "nameType": "Personal"
-    },
-    {
-      "familyName": "MATHURIN",
-      "givenName": "J\u00e9r\u00e9mie",
-      "name": "MATHURIN, J\u00e9r\u00e9mie",
-      "nameIdentifiers": [
-        {
-          "nameIdentifier": "0000-0002-6769-6394",
-          "nameIdentifierScheme": "ORCID"
-        }
-      ],
-      "nameType": "Personal"
-    }
-  ],
-  "dates": [
-    {
-      "date": "2025-12-15",
-      "dateType": "Issued"
-    },
-    {
-      "date": "2026-02-23",
-      "dateType": "Updated"
-    }
-  ],
-  "descriptions": [
-    {
-      "description": "First release of the streamlit app to process the data cube obtained by the Force-Volume IR acquisition mode of the IconIR (Bruker). Made by the AFM-IR team of Institut de Chimie Physique of Paris-Saclay University.\n\nFull Changelog: https://github.com/CarlaC08/Force-Volume-IR-processing/commits/AFM-IR",
-      "descriptionType": "Abstract"
-    }
-  ],
-  "identifiers": [
-    {
-      "identifier": "https://zenodo.org/records/17936884",
-      "identifierType": "URL"
-    },
-    {
-      "identifier": "10.5281/zenodo.17936884",
-      "identifierType": "DOI"
-    },
-    {
-      "identifier": "oai:zenodo.org:17936884",
-      "identifierType": "oai"
-    }
-  ],
-  "publicationYear": "2025",
-  "publisher": "Zenodo",
-  "relatedIdentifiers": [
-    {
-      "relatedIdentifier": "https://github.com/CarlaC08/Force-Volume-IR-processing/tree/AFM-IR",
-      "relatedIdentifierType": "URL",
-      "relationType": "IsSupplementTo",
-      "resourceTypeGeneral": "Software"
-    },
-    {
-      "relatedIdentifier": "10.5281/zenodo.17936883",
-      "relatedIdentifierType": "DOI",
-      "relationType": "IsVersionOf"
-    }
-  ],
-  "rightsList": [
-    {
-      "rights": "MIT License",
-      "rightsIdentifier": "mit",
-      "rightsIdentifierScheme": "spdx",
-      "rightsUri": "https://opensource.org/licenses/MIT"
-    },
-    {
-      "rightsUri": "info:eu-repo/semantics/restrictedAccess"
-    }
-  ],
-  "schemaVersion": "http://datacite.org/schema/kernel-4",
-  "titles": [
-    {
-      "title": "Data processing for Frequency-sweep force volume AFM-IR"
-    }
-  ],
-  "types": {
-    "resourceType": "",
-    "resourceTypeGeneral": "Software"
-  },
-  "version": "1.0.0"
+      {
+        "name": "Collange, Carla",
+        "orcid" : "0009-0000-2635-9351",
+        "affiliation": "Institut de Chimie Physique, Université Paris-Saclay - CNRS, 91400 Orsay, France"
+    }],
+    "contributors":[
+      {
+      "name": "Dazzi, Alexandre",
+      "orcid": "0000-0001-5752-8461",
+      "affiliation": "Institut de Chimie Physique, Université Paris-Saclay - CNRS, 91400 Orsay, France",
+      "type" : "ProjectLeader"
+        },
+      {
+      "name": "MATHURIN, Jérémie",
+      "orcid": "0000-0002-6769-6394",
+      "affiliation": "Institut de Chimie Physique, Université Paris-Saclay - CNRS, 91400 Orsay, France",
+      "type" : "ProjectLeader"
+      }
+    ],
+  "title": "Data processing for Frequency-sweep force volume AFM-IR",
+  "license": "mit",
+  "upload_type": "Software",
+  "language": "eng"
 }
