@@ -574,11 +574,15 @@ with configTab:
             Saved_path=working_directory+"Processed/"
     
 with visualisingTab:
-    if st.session_state.FV_upload == True : 
-        if st.button('Save topography as txt file.', type='primary') :
+    if st.session_state.FV_upload == True :
+        c_button, c_checkbox = st.columns(2, width=500, gap=None)
+        if c_button.button('Save topography as txt file.', type='primary') :
             np.savetxt(Saved_path+filename+"_TOPO.txt", st.session_state.cube_topo, delimiter=';')
             toast_appearance()
             st.toast('Topography has been saved', icon=':material/check:', duration="infinite")
+        if c_checkbox.checkbox('Topography autosave',False,help="By checking this box, your topography will be automatically save when you change the file to be processed. Valid only for the session (has to be re-checked if you re-run the app).") :
+            if filename+"_TOPO.txt" not in Saved_path : np.savetxt(Saved_path+filename+"_TOPO.txt", st.session_state.cube_topo, delimiter=';')
+            else : pass
         if st.toggle("Display IR sections along n and m axis") :
             with st.sidebar :
                 with st.expander('Parameters of the 3 figures') :
@@ -804,7 +808,7 @@ with processingTab:
             st.write("1. Select the data and peak to use")
             c1_proc, c2_proc, c3_proc, c4_proc = st.columns(4, vertical_alignment='top')
             data_choice = c1_proc.radio('Data to use', ['cube', 'cube_smoothed'], format_func= lambda x: {'cube':'Raw datas', 'cube_smoothed':'Smoothed Datas'}.get(x), horizontal=True)
-            fit_choice = c2_proc.radio('Fit function to use', ['ASHO', 'SHO', 'None'], key='fit_choice', format_func=lambda x: {'ASHO': "Asymetric SHO",'SHO': "SHO"}.get(x), horizontal=True)
+            fit_choice = c2_proc.radio('Fit function to use', ['ASHO', 'SHO', 'None'], key='fit_choice', format_func=lambda x: {'ASHO': "Asymetric SHO",'SHO': "SHO", 'None':'None'}.get(x), horizontal=True)
             choice_peak = c3_proc.number_input('Select a peak to fit', min_value=1, max_value=st.session_state.nbr_peak, step=1)
             if np.shape(st.session_state.df_Peaks_ref.index.values) != (1,): st.session_state.params = dict(st.session_state.df_Peaks_ref.iloc[int(np.where(st.session_state.df_Peaks_ref.index==choice_peak)[0])])
             else : st.session_state.params = dict(st.session_state.df_Peaks_ref.iloc[0])
