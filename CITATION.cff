@@ -13,7 +13,7 @@ authors:
   given-names: "J\xE9r\xE9mie"
   orcid: 0000-0002-6769-6394
 date-released: 2026-02-23
-doi: 10.5281/zenodo.17936884
+doi: 10.5281/zenodo.17936883
 license: mit
 repository-code: https://github.com/CarlaC08/Force-Volume-IR-processing/tree/AFM-IR
 title: "Data processing for Frequency-sweep force volume AFM-IR"
