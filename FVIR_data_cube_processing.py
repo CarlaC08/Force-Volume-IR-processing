@@ -207,9 +207,10 @@ def SHO_asym_Fit(frequency, amplitude, min_freq, max_freq, ylim, window_freq, f0
         else :
             f_maxHW, f_minHW = no_fit_FWHM(x_fitwind, y_fitwind)
             FWHM_initial = f_maxHW - f_minHW
-            if y_fitwind[0]<y_fitwind[-1] : params = model.make_params(B0={'value':1e5, 'min':0}, x0={'value':2*x[b], 'expr':'2*f0 '}, f0={'value':x[b], 'min':x[b]-f0_shift, 'max':x[b]+f0_shift}, D={'value': 2*np.pi*FWHM_initial/np.sqrt(3), 'min':(2*np.pi/np.sqrt(3))*(1-(FWHM_shift/100))*(FWHM_initial), 'max':(2*np.pi/np.sqrt(3))*(1+(FWHM_shift/100))*(FWHM_initial)})
-            elif y_fitwind[0]>y_fitwind[-1] : params = model.make_params(B0={'value':1e5, 'min':0}, x0={'value':0, 'min':0, 'vary':False}, f0={'value':x[b], 'min':x[b]-f0_shift, 'max':x[b]+f0_shift}, D={'value': 2*np.pi*FWHM_initial/np.sqrt(3), 'min':(2*np.pi/np.sqrt(3))*(1-(FWHM_shift/100))*(FWHM_initial), 'max':(2*np.pi/np.sqrt(3))*(1+(FWHM_shift/100))*(FWHM_initial)})
-            else : params = model.make_params(B0={'value':1e5, 'min':0}, x0={'value':0, 'min':0}, f0={'value':x[b], 'min':x[b]-f0_shift, 'max':x[b]+f0_shift}, D={'value': 2*np.pi*FWHM_initial/np.sqrt(3), 'min':(2*np.pi/np.sqrt(3))*(1-(FWHM_shift/100))*(FWHM_initial), 'max':(2*np.pi/np.sqrt(3))*(1+(FWHM_shift/100))*(FWHM_initial)})
+            b0_init = y[b]*FWHM_initial*(np.pi)**2*x[b]*4/np.sqrt(3)
+            if y_fitwind[0]<y_fitwind[-1] : params = model.make_params(B0={'value':b0_init, 'min':y[b]*FWHM_initial*(1-(FWHM_shift/100))*(np.pi)**2*(x[b]-f0_shift)*4/np.sqrt(3), 'max':y[b]*FWHM_initial*(1+(FWHM_shift/100))*(np.pi)**2*(x[b]+f0_shift)*4/np.sqrt(3)}, x0={'value':2*x[b], 'expr':'2*f0 '}, f0={'value':x[b], 'min':x[b]-f0_shift, 'max':x[b]+f0_shift}, D={'value': 2*np.pi*FWHM_initial/np.sqrt(3), 'min':(2*np.pi/np.sqrt(3))*(1-(FWHM_shift/100))*(FWHM_initial), 'max':(2*np.pi/np.sqrt(3))*(1+(FWHM_shift/100))*(FWHM_initial)})
+            elif y_fitwind[0]>y_fitwind[-1] : params = model.make_params(B0={'value':b0_init, 'min':y[b]*FWHM_initial*(1-(FWHM_shift/100))*(np.pi)**2*(x[b]-f0_shift)*4/np.sqrt(3), 'max':y[b]*FWHM_initial*(1+(FWHM_shift/100))*(np.pi)**2*(x[b]+f0_shift)*4/np.sqrt(3)}, x0={'value':0, 'min':0, 'vary':False}, f0={'value':x[b], 'min':x[b]-f0_shift, 'max':x[b]+f0_shift}, D={'value': 2*np.pi*FWHM_initial/np.sqrt(3), 'min':(2*np.pi/np.sqrt(3))*(1-(FWHM_shift/100))*(FWHM_initial), 'max':(2*np.pi/np.sqrt(3))*(1+(FWHM_shift/100))*(FWHM_initial)})
+            else : params = model.make_params(B0={'value':1e5, 'min':0}, x0={'value':0, 'min':y[b]*FWHM_initial*(1-(FWHM_shift/100))*(np.pi)**2*(x[b]-f0_shift)*4/np.sqrt(3), 'max':y[b]*FWHM_initial*(1+(FWHM_shift/100))*(np.pi)**2*(x[b]+f0_shift)*4/np.sqrt(3)}, f0={'value':x[b], 'min':x[b]-f0_shift, 'max':x[b]+f0_shift}, D={'value': 2*np.pi*FWHM_initial/np.sqrt(3), 'min':(2*np.pi/np.sqrt(3))*(1-(FWHM_shift/100))*(FWHM_initial), 'max':(2*np.pi/np.sqrt(3))*(1+(FWHM_shift/100))*(FWHM_initial)})
             out = model.fit(y_fitwind, params, f=x_fitwind)
             B0, D, f0, x0 = out.summary()['best_values']['B0'], out.summary()['best_values']['D'], out.summary()['best_values']['f0'], out.summary()['best_values']['x0']
             f_maxHW, f_minHW = no_fit_FWHM(x_fitwind, out.best_fit)
@@ -264,8 +265,9 @@ def SHO_asym_plot(frequency, amplitude, test_choice, center, freq_min, freq_max,
             f_maxHW, f_minHW = no_fit_FWHM(x, y)
             FWHM_init = f_maxHW - f_minHW
             condition = (frequency>=x[b]-half_window_freq) & (frequency<=x[b]+half_window_freq)
-            if amplitude[condition][0]<amplitude[condition][-1] : params = model.make_params(B0={'value':1e5, 'min':0}, x0={'value':2*x[b], 'expr':'2*f0 '}, f0={'value':x[b], 'min':x[b]-f0_shift, 'max':x[b]+f0_shift}, D={'value': 2*np.pi*FWHM_init/np.sqrt(3), 'min':(2*np.pi/np.sqrt(3))*(1-(FWHM_shift/100))*(FWHM_init), 'max':(2*np.pi/np.sqrt(3))*(1+(FWHM_shift/100))*(FWHM_init)})
-            else : params = model.make_params(B0={'value':1e5, 'min':0}, x0={'value':0, 'min':0, 'vary':False}, f0={'value':x[b], 'min':x[b]-f0_shift, 'max':x[b]+f0_shift}, D={'value': 2*np.pi*FWHM_init/np.sqrt(3), 'min':(2*np.pi/np.sqrt(3))*(1-(FWHM_shift/100))*(FWHM_init), 'max':(2*np.pi/np.sqrt(3))*(1+(FWHM_shift/100))*(FWHM_init)})
+            b0_init = y[b]*FWHM_init*(np.pi)**2*x[b]*4/np.sqrt(3)
+            if amplitude[condition][0]<amplitude[condition][-1] : params = model.make_params(B0={'value':b0_init, 'min':y[b]*FWHM_init*(1-(FWHM_shift/100))*(np.pi)**2*(x[b]-f0_shift)*4/np.sqrt(3), 'max':y[b]*FWHM_init*(1+(FWHM_shift/100))*(np.pi)**2*(x[b]+f0_shift)*4/np.sqrt(3)}, x0={'value':2*x[b], 'expr':'2*f0 '}, f0={'value':x[b], 'min':x[b]-f0_shift, 'max':x[b]+f0_shift}, D={'value': 2*np.pi*FWHM_init/np.sqrt(3), 'min':(2*np.pi/np.sqrt(3))*(1-(FWHM_shift/100))*(FWHM_init), 'max':(2*np.pi/np.sqrt(3))*(1+(FWHM_shift/100))*(FWHM_init)})
+            else : params = model.make_params(B0={'value': b0_init, 'min':y[b]*FWHM_init*0.9*(np.pi)**2*(x[b]-f0_shift)*4/np.sqrt(3), 'max':y[b]*FWHM_init*1.1*(np.pi)**2*(x[b]+f0_shift)*4/np.sqrt(3)}, x0={'value':0, 'min':0, 'vary':False}, f0={'value':x[b], 'min':x[b]-f0_shift, 'max':x[b]+f0_shift}, D={'value': 2*np.pi*FWHM_init/np.sqrt(3), 'min':(2*np.pi/np.sqrt(3))*(1-(FWHM_shift/100))*(FWHM_init), 'max':(2*np.pi/np.sqrt(3))*(1+(FWHM_shift/100))*(FWHM_init)})
             out = model.fit(amplitude[condition], params, f=frequency[condition])
             B0, D, f0, x0 = out.summary()['best_values']['B0'], out.summary()['best_values']['D'], out.summary()['best_values']['f0'], out.summary()['best_values']['x0']
             y_fit = out.best_fit
@@ -303,7 +305,8 @@ def SHO_Fit(frequency, amplitude, min_freq, max_freq, ylim, f0_shift, FWHM_shift
             f_maxHW, f_minHW = no_fit_FWHM(x, y)
             FWHM_init = f_maxHW - f_minHW
             model = Model(SHO, independent_vars=['f'], nan_policy='raise')
-            params = model.make_params(B0={'value':y[b], 'min':0}, D={'value': 2*np.pi*FWHM_init/np.sqrt(3), 'min':(2*np.pi/np.sqrt(3))*(1-(FWHM_shift/100))*(FWHM_init), 'max':(2*np.pi/np.sqrt(3))*(1+(FWHM_shift/100))*(FWHM_init)}, f0={'value':x[b], 'min':x[b]-f0_shift, 'max':x[b]+f0_shift})
+            b0_init = y[b]*FWHM_init*(np.pi)**2*x[b]*4/np.sqrt(3)
+            params = model.make_params(B0={'value':b0_init, 'min':y[b]*FWHM_init*(1-(FWHM_shift/100))*(np.pi)**2*(x[b]-f0_shift)*4/np.sqrt(3), 'max':y[b]*FWHM_init*(1+(FWHM_shift/100))*(np.pi)**2*(x[b]+f0_shift)*4/np.sqrt(3)}, D={'value': 2*np.pi*FWHM_init/np.sqrt(3), 'min':(2*np.pi/np.sqrt(3))*(1-(FWHM_shift/100))*(FWHM_init), 'max':(2*np.pi/np.sqrt(3))*(1+(FWHM_shift/100))*(FWHM_init)}, f0={'value':x[b], 'min':x[b]-f0_shift, 'max':x[b]+f0_shift})
             out = model.fit(y_fitwind, params, f=x_fitwind)
             B0, D, center, R2 = out.summary()['best_values']['B0'], out.summary()['best_values']['D'], out.summary()['best_values']['f0'], out.rsquared
             amp_max = max(SHO(B0, D, center, x_fitwind))
@@ -329,7 +332,8 @@ def SHO_plot(frequency, amplitude, test_choice, center, freq_min, freq_max, y_li
         else :
             f_maxHW, f_minHW = no_fit_FWHM(x, y)
             FWHM_init = f_maxHW - f_minHW
-            params = model.make_params(B0={'value':y[b], 'min' :0}, D={'value': 2*np.pi*FWHM_init/np.sqrt(3), 'min':(2*np.pi/np.sqrt(3))*(1-(FWHM_shift/100))*(FWHM_init), 'max':(2*np.pi/np.sqrt(3))*(1+(FWHM_shift/100))*(FWHM_init)}, f0={'value':x[b], 'min':x[b]-f0_shift, 'max':x[b]+f0_shift})
+            b0_init = y[b]*FWHM_init*(np.pi)**2*x[b]*4/np.sqrt(3)
+            params = model.make_params(B0={'value':b0_init, 'min' :y[b]*FWHM_init*(1-(FWHM_shift/100))*(np.pi)**2*(x[b]-f0_shift)*4/np.sqrt(3), 'max':y[b]*FWHM_init*(1+(FWHM_shift/100))*(np.pi)**2*(x[b]+f0_shift)*4/np.sqrt(3)}, D={'value': 2*np.pi*FWHM_init/np.sqrt(3), 'min':(2*np.pi/np.sqrt(3))*(1-(FWHM_shift/100))*(FWHM_init), 'max':(2*np.pi/np.sqrt(3))*(1+(FWHM_shift/100))*(FWHM_init)}, f0={'value':x[b], 'min':x[b]-f0_shift, 'max':x[b]+f0_shift})
             out = model.fit(amplitude[condition], params, f=frequency[condition])
             y_fit = out.best_fit
             B0, D, f0 = out.summary()['best_values']['B0'], out.summary()['best_values']['D'], out.summary()['best_values']['f0']  
