@@ -228,9 +228,9 @@ def SHO_asym_Fit(frequency, amplitude, min_freq, max_freq, ylim, window_freq, f0
 
 def SHO_asym_integrale(B0, D, f0, x0, center, frequency, amplitude, half_int_wind, i, j):
     condition = (frequency>=center-half_int_wind)&(frequency<=center+half_int_wind)
-    area_SHO = np.trapz(SHO_asym(B0, frequency[condition], x0, f0, D), frequency[condition])
+    if B0==np.nan : area_SHO=np.nan
+    else : area_SHO = np.trapz(SHO_asym(B0, frequency[condition], x0, f0, D), frequency[condition])
     area_datas = np.trapz(amplitude[condition], frequency[condition])
-    if B0==0: area_SHO=np.nan
     return area_SHO, area_datas
 
 @st.cache_data(max_entries=20, show_spinner="Fitting the asymetric SHO to all the position")
@@ -320,9 +320,9 @@ def SHO_Fit(frequency, amplitude, min_freq, max_freq, ylim, f0_shift, FWHM_shift
 
 def SHO_integrale(B0, D, f0, frequency, amplitude, half_int_wind, i, j):
     reduc_freq = frequency[(frequency>=f0-half_int_wind)&(frequency<=f0+half_int_wind)]
-    area_SHO = np.trapz(SHO(B0, D, f0, reduc_freq), reduc_freq)
     area_datas = np.trapz(amplitude[(frequency>=f0-half_int_wind)&(frequency<=f0+half_int_wind)], reduc_freq)
-    if B0==0: area_SHO=np.nan
+    if B0==np.nan : area_SHO=np.nan
+    else : area_SHO = np.trapz(SHO(B0, D, f0, reduc_freq), reduc_freq)
     return area_SHO, area_datas
 
 def SHO_plot(frequency, amplitude, test_choice, center, freq_min, freq_max, y_lim, f0_shift, FWHM_shift, window_freq, FWHM_threshold, per_integrale):
@@ -966,7 +966,7 @@ with loadingTab:
                 if 'freq' not in st.session_state : st.session_state.freq = 0
                 freq = int(st.number_input('Frequency (kHz)'))
             with c2_2 :
-                with st.popover('Datas to load'): st.session_state.load_datas = st.checkbox('Fit area', value=True, key='SHO_area_load'); st.checkbox('Fit maximal amplitude', value=True, key='SHO_amp_load'); st.checkbox('Datas area', value=False, key='datas_area_load'); st.checkbox('Datas maximal amplitude', value=False, key='datas_amp_load'); st.checkbox('Fit central frequency', value=True, key='central_freq_load'); st.checkbox('Fit FWHM', value=False, key='SHO_FWHM_load'); st.checkbox('Datas FWHM', value=False, key='datas_FWHM_load'); st.checkbox('Fit damping', value=True, key='SHO_damping_load'); st.checkbox('Fit B0 constant', value=False, key='SHO_B0_load'); st.checkbox('Asymetric SHO x0', value=False, key='SHO_x0_load'); st.checkbox('Asymetric SHO g0', value=False, key='SHO_g0_load'); st.checkbox('Fit score', value=False, key='SHO_R2_load')
+                with st.popover('Datas to load'): st.session_state.load_datas = st.checkbox('Fit area', value=True, key='SHO_area_load'); st.checkbox('Fit maximal amplitude', value=True, key='SHO_amp_load'); st.checkbox('Datas area', value=False, key='datas_area_load'); st.checkbox('Datas maximal amplitude', value=False, key='datas_amp_load'); st.checkbox('Fit central frequency', value=True, key='central_freq_load'); st.checkbox('Fit FWHM', value=True, key='SHO_FWHM_load'); st.checkbox('Datas FWHM', value=False, key='datas_FWHM_load'); st.checkbox('Fit damping', value=False, key='SHO_damping_load'); st.checkbox('Fit B0 constant', value=False, key='SHO_B0_load'); st.checkbox('Asymetric SHO x0', value=False, key='SHO_x0_load'); st.checkbox('Asymetric SHO g0', value=False, key='SHO_g0_load'); st.checkbox('Fit score', value=False, key='SHO_R2_load')
             c2_3, c2_4 = st.columns(2, vertical_alignment='bottom')
             with c2_3 : FWHM_thresh = int(st.number_input('FWHM threshold (kHz)')); DT = int(st.number_input('If not FWHM threshold, enter damping threshold (kHz)'))
             with c2_4 :
