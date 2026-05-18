@@ -228,7 +228,7 @@ def SHO_asym_Fit(frequency, amplitude, min_freq, max_freq, ylim, window_freq, f0
 
 def SHO_asym_integrale(B0, D, f0, x0, center, frequency, amplitude, half_int_wind, i, j):
     condition = (frequency>=center-half_int_wind)&(frequency<=center+half_int_wind)
-    if B0==np.nan : area_SHO=np.nan
+    if np.isnan(B0)==True : area_SHO=np.nan
     else : area_SHO = np.trapz(SHO_asym(B0, frequency[condition], x0, f0, D), frequency[condition])
     area_datas = np.trapz(amplitude[condition], frequency[condition])
     return area_SHO, area_datas
@@ -321,7 +321,7 @@ def SHO_Fit(frequency, amplitude, min_freq, max_freq, ylim, f0_shift, FWHM_shift
 def SHO_integrale(B0, D, f0, frequency, amplitude, half_int_wind, i, j):
     reduc_freq = frequency[(frequency>=f0-half_int_wind)&(frequency<=f0+half_int_wind)]
     area_datas = np.trapz(amplitude[(frequency>=f0-half_int_wind)&(frequency<=f0+half_int_wind)], reduc_freq)
-    if B0==np.nan : area_SHO=np.nan
+    if np.isnan(B0)==True : area_SHO=np.nan
     else : area_SHO = np.trapz(SHO(B0, D, f0, reduc_freq), reduc_freq)
     return area_SHO, area_datas
 
@@ -879,7 +879,7 @@ with processingTab:
                 if st.session_state.SHO_f0_save == True : np.savetxt(Saved_path+filename+"_g0-ASHO_"+freq+"kHz.txt", st.session_state.cube_f0, delimiter=';')
             except AttributeError : pass
             st.success('Datas has been saved.')            
-        
+
         st.divider()
 
         #### Results plot
