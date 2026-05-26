@@ -1,17 +1,22 @@
 cff-version: 1.2.0
 message: "If you use this software, please cite it as below."
 authors:
-- affiliation: "Institut de Chimie Physique, Universit\xE9 Paris-Saclay - CNRS, 91400\
-    \ Orsay, France"
+- affiliation: "Institut de Chimie Physique, Université Paris-Saclay - CNRS, 91400 Orsay, France"
   family-names: COLLANGE
   given-names: Carla
   orcid: 0009-0000-2635-9351
-- family-names: DAZZI
+- affiliation: "Institut de Chimie Physique, Université Paris-Saclay - CNRS, 91400 Orsay, France"
+  family-names: DAZZI
   given-names: Alexandre
   orcid: 0000-0001-5752-8461
-- family-names: MATHURIN
-  given-names: "J\xE9r\xE9mie"
+- affiliation: "Institut de Chimie Physique, Université Paris-Saclay - CNRS, 91400 Orsay, France"
+  family-names: MATHURIN
+  given-names: Jérémie
   orcid: 0000-0002-6769-6394
+- affiliation: "Institut de Chimie Physique, Université Paris-Saclay - CNRS, 91400 Orsay, France"
+  family-names: ROJAS
+  given-names: Julien
+  orcid: 0000-0002-8389-6126
 date-released: 2026-02-23
 doi: 10.5281/zenodo.17936883
 license: mit
