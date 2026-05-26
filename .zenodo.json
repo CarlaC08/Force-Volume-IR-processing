@@ -12,7 +12,7 @@
         "type" : "ProjectLeader"
     },
     {
-      "name": "MATHURIN, Jérémie",
+      "name": "Mathurin, Jérémie",
       "orcid": "0000-0002-6769-6394",
       "affiliation": "Institut de Chimie Physique, Université Paris-Saclay - CNRS, 91400 Orsay, France",
       "type" : "ProjectLeader"
@@ -25,7 +25,10 @@
     }
   ],
   "title": "Data processing for Frequency-sweep force volume AFM-IR",
+  "description": "Software for processing Frequency-sweep force volume AFM-IR data",
   "license": "mit",
   "upload_type": "software",
-  "language": "eng"
+  "language": "eng",
+  "version": "3.0.2",
+  "keywords": ["AFM-IR", "force-volume", "infrared", "data-processing"]
 }
