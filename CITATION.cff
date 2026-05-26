@@ -21,4 +21,4 @@ license: mit
 repository-code: https://github.com/CarlaC08/Force-Volume-IR-processing/tree/AFM-IR
 title: "Data processing for Frequency-sweep force volume AFM-IR"
 type: software
-version: v-3.0.5
+version: 3.0.5
