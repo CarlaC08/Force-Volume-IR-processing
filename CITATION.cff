@@ -3,16 +3,16 @@ message: "If you use this software, please cite it as below."
 authors:
 - affiliation: "Institut de Chimie Physique, Universit\xE9 Paris-Saclay - CNRS, 91400\
     \ Orsay, France"
-  family-names: Collange
+  family-names: COLLANGE
   given-names: Carla
   orcid: 0009-0000-2635-9351
-- family-names: Dazzi
+- family-names: DAZZI
   given-names: Alexandre
   orcid: 0000-0001-5752-8461
-- family-names: Mathurin
+- family-names: MATHURIN
   given-names: "J\xE9r\xE9mie"
   orcid: 0000-0002-6769-6394
-- family-names: Rojas
+- family-names : ROJAS
   given-names: Julien
   orcid: 0000-0002-8389-6126
 date-released: 2026-05-26
@@ -21,4 +21,4 @@ license: mit
 repository-code: https://github.com/CarlaC08/Force-Volume-IR-processing/tree/AFM-IR
 title: "Data processing for Frequency-sweep force volume AFM-IR"
 type: software
-version: 3.0.5
+version: 3.0.2
