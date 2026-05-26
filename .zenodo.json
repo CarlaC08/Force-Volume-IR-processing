@@ -21,8 +21,8 @@
         "name": "Rojas, Julien",
         "orcid" : "0000-0002-8389-6126",
         "affiliation": "Institut de Chimie Physique, Université Paris-Saclay - CNRS, 91400 Orsay, France",
-      "type" : "ProjectMember"
-    },
+        "type" : "ProjectMember"
+    }
   ],
   "title": "Data processing for Frequency-sweep force volume AFM-IR",
   "license": "mit",
