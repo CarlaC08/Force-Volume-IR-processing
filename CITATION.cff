@@ -17,10 +17,10 @@ authors:
   family-names: ROJAS
   given-names: Julien
   orcid: 0000-0002-8389-6126
-date-released: 2026-02-23
+date-released: 2026-05-26
 doi: 10.5281/zenodo.17936883
 license: mit
 repository-code: https://github.com/CarlaC08/Force-Volume-IR-processing/tree/AFM-IR
 title: "Data processing for Frequency-sweep force volume AFM-IR"
 type: software
-version: 2.0.0
+version: 3.0.2
