@@ -1,35 +1,28 @@
 {
+  "title": "Data processing for Frequency-sweep force volume AFM-IR",
+  "description": "Software for processing Frequency-sweep force volume AFM-IR data",
   "creators": [
-      {
-        "name": "Collange, Carla",
-        "orcid": "https://orcid.org/0009-0000-2635-9351",
-        "affiliation": "Institut de Chimie Physique, Université Paris-Saclay - CNRS, 91400 Orsay, France",
-        "type": "ProjectMember"
+    {
+      "name": "Collange, Carla",
+      "orcid": "0009-0000-2635-9351",
+      "affiliation": "Institut de Chimie Physique, Université Paris-Saclay - CNRS, 91400 Orsay, France"
     },
     {
-        "name": "Dazzi, Alexandre",
-        "orcid": "https://orcid.org/0000-0001-5752-8461",
-        "affiliation": "Institut de Chimie Physique, Université Paris-Saclay - CNRS, 91400 Orsay, France",
-        "type": "ProjectLeader"
+      "name": "Dazzi, Alexandre",
+      "orcid": "0000-0001-5752-8461",
+      "affiliation": "Institut de Chimie Physique, Université Paris-Saclay - CNRS, 91400 Orsay, France"
     },
     {
       "name": "Mathurin, Jérémie",
-      "orcid": "https://orcid.org/0000-0002-6769-6394",
-      "affiliation": "Institut de Chimie Physique, Université Paris-Saclay - CNRS, 91400 Orsay, France",
-      "type": "ProjectLeader"
+      "orcid": "0000-0002-6769-6394",
+      "affiliation": "Institut de Chimie Physique, Université Paris-Saclay - CNRS, 91400 Orsay, France"
     },
     {
-        "name": "Rojas, Julien",
-        "orcid": "https://orcid.org/0000-0002-8389-6126",
-        "affiliation": "Institut de Chimie Physique, Université Paris-Saclay - CNRS, 91400 Orsay, France",
-        "type": "ProjectMember"
+      "name": "Rojas, Julien",
+      "orcid": "0000-0002-8389-6126",
+      "affiliation": "Institut de Chimie Physique, Université Paris-Saclay - CNRS, 91400 Orsay, France"
     }
   ],
-  "title": "Data processing for Frequency-sweep force volume AFM-IR",
-  "description": "Software for processing Frequency-sweep force volume AFM-IR data",
   "license": "MIT",
-  "upload_type": "software",
-  "language": "eng",
-  "version": "3.0.2",
-  "keywords": ["AFM-IR", "force-volume", "infrared", "data-processing"]
+  "upload_type": "software"
 }
