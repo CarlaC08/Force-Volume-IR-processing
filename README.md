@@ -3,4 +3,4 @@ In this repo you'll find a python script to process the datas obtained by the Fo
 Once you've downloaded the script, open a terminal under python, and use the lines code :  
 cd [path_to_script]  
 streamlit run FVIR_peak_processing.py  
-This app is protected by an MIT License, to cite this work please refer to the DOI : https://doi.org/10.5281/zenodo.17936884
+This app is protected by an MIT License, to cite this work please refer to the DOI : https://doi.org/10.5281/zenodo.17936883
