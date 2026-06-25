@@ -53,6 +53,7 @@ if 'cube_x0' not in st.session_state : st.session_state.cube_x0 = []
 if 'cube_center' not in st.session_state : st.session_state.cube_center = []
 if 'cube_ymax' not in st.session_state : st.session_state.cube_ymax = []
 if 'loaded_datas' not in st.session_state : st.session_state.loaded_datas = {"cube_Area_SHO_l":False,"cube_Amp_l":False,"cube_topo_l":True, "cube_Area_datas_l":False,"cube_ymax_l":False,"cube_center_l":False,"cube_FWHM_l":False, "cube_Damping_l":False,"cube_B0_l":False,"cube_x0_l":False,"cube_g0_l":False,"cube_Q_l":False,"cube_R2_l":False}
+if 'load_to_plot' not in st.session_state : st.session_state.load_to_plot = []
 st.session_state.colorscales = [i for j in [[k, k+'_r'] for k in px.colors.named_colorscales()] for i in j]
 st.session_state.default_colors = ['#000000', '#FF0000', '#0E00FF', '#06FF00', '#FB00FF', '#FFB300', '#00E0FF', '#8D00FF', "#0E8C8E", "#539032"]
 
@@ -77,16 +78,19 @@ def toast_appearance():
         </style>
         """, unsafe_allow_html=True)
 
+def reset_loaded_datas():
+    for key in ['loaded_datas','load_to_plot','cube_Area_SHO_l','cube_Amp_l','cube_Area_datas_l','cube_ymax_l','cube_topo_l','cube_center_l','cube_FWHM_l','cube_FWHM_datas_l','cube_Damping_l','cube_B0_l','cube_x0_l','cube_g0_l','cube_Q_l','cube_R2_l']:
+        try : del st.session_state[key]   
+        except KeyError : pass
+        try : del st.session_state['ax_'+key]
+        except KeyError : pass
+
 def reset_datas():
     reset_loaded_datas()
     for key in ['cube_smoothed', 'cube_Amp', 'cube_f0', 'cube_FWHM', 'cube_Damping', 'cube_B0', 'cube_Area_SHO', 'cube_Area_datas', 'cube_x0', 'cube_center', 'cube_ymax', 'carto_offset', 'cube_FWHM_datas',"cube_Area_SHO_l","cube_Amp_l","cube_topo_l", "cube_Area_datas_l","cube_ymax_l","cube_center_l","cube_FWHM_l", "cube_Damping_l","cube_B0_l","cube_x0_l","cube_g0_l","cube_Q_l","cube_R2_l"]:
         try : del st.session_state[key]
         except KeyError : pass
-
-def reset_loaded_datas():
-    for key in ['cube_Area_SHO_l','cube_Amp_l','cube_Area_datas_l','cube_ymax_l','cube_topo_l','cube_center_l','cube_FWHM_l','cube_FWHM_datas_l','cube_Damping_l','cube_B0_l','cube_x0_l','cube_g0_l','cube_Q_l','cube_R2_l']:
-        try : del st.session_state[key]
-        except KeyError : pass
+        
 #from https://discuss.streamlit.io/t/simple-folder-explorer/77765
 def GetDesktopFolder():
     CSIDL_DESKTOP = 0
@@ -207,18 +211,19 @@ def SHO_asym_Fit(frequency, amplitude, min_freq, max_freq, ylim, window_freq, f0
         condition = (frequency >= x[b]-half_window_freq) & (frequency <= x[b]+half_window_freq)
         model = Model(SHO_asym, independent_vars=['f'], nan_policy='raise')
         x_fitwind, y_fitwind = frequency[condition], amplitude[condition]
-        try : no_fit_FWHM(x_fitwind, y_fitwind)
+        try :  f_maxHW, f_minHW = no_fit_FWHM(x_fitwind, y_fitwind, i, j)
         except ValueError : D, FWHM_initial, FWHM, amp_max, center, B0, f0, x0, R2 = np.nan, np.nan, np.nan, np.nan, x[b], np.nan, np.nan, np.nan, np.nan
         else :
-            f_maxHW, f_minHW = no_fit_FWHM(x_fitwind, y_fitwind)
             FWHM_initial = f_maxHW - f_minHW
             b0_init = y[b]*FWHM_initial*(np.pi)**2*x[b]*4/np.sqrt(3)
             if y_fitwind[0]<y_fitwind[-1] : params = model.make_params(B0={'value':b0_init, 'min':y[b]*FWHM_initial*(1-(FWHM_shift/100))*(np.pi)**2*(x[b]-f0_shift)*4/np.sqrt(3), 'max':y[b]*FWHM_initial*(1+(FWHM_shift/100))*(np.pi)**2*(x[b]+f0_shift)*4/np.sqrt(3)}, x0={'value':2*x[b], 'expr':'2*f0 '}, f0={'value':x[b], 'min':x[b]-f0_shift, 'max':x[b]+f0_shift}, D={'value': 2*np.pi*FWHM_initial/np.sqrt(3), 'min':(2*np.pi/np.sqrt(3))*(1-(FWHM_shift/100))*(FWHM_initial), 'max':(2*np.pi/np.sqrt(3))*(1+(FWHM_shift/100))*(FWHM_initial)})
             elif y_fitwind[0]>y_fitwind[-1] : params = model.make_params(B0={'value':b0_init, 'min':y[b]*FWHM_initial*(1-(FWHM_shift/100))*(np.pi)**2*(x[b]-f0_shift)*4/np.sqrt(3), 'max':y[b]*FWHM_initial*(1+(FWHM_shift/100))*(np.pi)**2*(x[b]+f0_shift)*4/np.sqrt(3)}, x0={'value':0, 'min':0, 'vary':False}, f0={'value':x[b], 'min':x[b]-f0_shift, 'max':x[b]+f0_shift}, D={'value': 2*np.pi*FWHM_initial/np.sqrt(3), 'min':(2*np.pi/np.sqrt(3))*(1-(FWHM_shift/100))*(FWHM_initial), 'max':(2*np.pi/np.sqrt(3))*(1+(FWHM_shift/100))*(FWHM_initial)})
             else : params = model.make_params(B0={'value':1e5, 'min':0}, x0={'value':0, 'min':y[b]*FWHM_initial*(1-(FWHM_shift/100))*(np.pi)**2*(x[b]-f0_shift)*4/np.sqrt(3), 'max':y[b]*FWHM_initial*(1+(FWHM_shift/100))*(np.pi)**2*(x[b]+f0_shift)*4/np.sqrt(3)}, f0={'value':x[b], 'min':x[b]-f0_shift, 'max':x[b]+f0_shift}, D={'value': 2*np.pi*FWHM_initial/np.sqrt(3), 'min':(2*np.pi/np.sqrt(3))*(1-(FWHM_shift/100))*(FWHM_initial), 'max':(2*np.pi/np.sqrt(3))*(1+(FWHM_shift/100))*(FWHM_initial)})
-            out = model.fit(y_fitwind, params, f=x_fitwind)
+            frequency_interp = np.arange(min(frequency[condition]),max(frequency[condition]),0.01)
+            amp_interp = np.interp(frequency_interp, frequency[condition], amplitude[condition])
+            out = model.fit(amp_interp, params, f=frequency_interp)
             B0, D, f0, x0 = out.summary()['best_values']['B0'], out.summary()['best_values']['D'], out.summary()['best_values']['f0'], out.summary()['best_values']['x0']
-            f_maxHW, f_minHW = no_fit_FWHM(x_fitwind, out.best_fit)
+            f_maxHW, f_minHW = no_fit_FWHM(frequency_interp, out.best_fit, i, j)
             FWHM = f_maxHW - f_minHW
             amp_max = max(SHO_asym(B0, x_fitwind, x0, f0, D))
             center = x_fitwind[SHO_asym(B0, x_fitwind, x0, f0, D)==amp_max][0]
@@ -228,8 +233,9 @@ def SHO_asym_Fit(frequency, amplitude, min_freq, max_freq, ylim, window_freq, f0
 
 def SHO_asym_integrale(B0, D, f0, x0, center, frequency, amplitude, half_int_wind, i, j):
     condition = (frequency>=center-half_int_wind)&(frequency<=center+half_int_wind)
+    frequency_interp = np.arange(min(frequency[condition]),max(frequency[condition]),0.01)
     if np.isnan(B0)==True : area_SHO=np.nan
-    else : area_SHO = np.trapz(SHO_asym(B0, frequency[condition], x0, f0, D), frequency[condition])
+    else : area_SHO = np.trapz(SHO_asym(B0, frequency_interp, x0, f0, D), frequency_interp)
     area_datas = np.trapz(amplitude[condition], frequency[condition])
     return area_SHO, area_datas
 
@@ -264,26 +270,29 @@ def SHO_asym_plot(frequency, amplitude, test_choice, center, freq_min, freq_max,
     if y[b] < y_lim : st.write("The maximal amplitude is strictly inferior to your amplitude threshold. Choose an other position.")
     else :
         model = Model(SHO_asym, independent_vars=['f'], nan_policy='raise')
-        try : no_fit_FWHM(x, y)
+        try : no_fit_FWHM(x, y, None, None)
         except ValueError : st.write(f'No peak found between {freq_min} and {freq_max} kHz.')
         else :
-            f_maxHW, f_minHW = no_fit_FWHM(x, y)
+            f_maxHW, f_minHW = no_fit_FWHM(x, y, None, None)
             FWHM_init = f_maxHW - f_minHW
             condition = (frequency>=x[b]-half_window_freq) & (frequency<=x[b]+half_window_freq)
             b0_init = y[b]*FWHM_init*(np.pi)**2*x[b]*4/np.sqrt(3)
             if amplitude[condition][0]<amplitude[condition][-1] : params = model.make_params(B0={'value':b0_init, 'min':y[b]*FWHM_init*(1-(FWHM_shift/100))*(np.pi)**2*(x[b]-f0_shift)*4/np.sqrt(3), 'max':y[b]*FWHM_init*(1+(FWHM_shift/100))*(np.pi)**2*(x[b]+f0_shift)*4/np.sqrt(3)}, x0={'value':2*x[b], 'expr':'2*f0 '}, f0={'value':x[b], 'min':x[b]-f0_shift, 'max':x[b]+f0_shift}, D={'value': 2*np.pi*FWHM_init/np.sqrt(3), 'min':(2*np.pi/np.sqrt(3))*(1-(FWHM_shift/100))*(FWHM_init), 'max':(2*np.pi/np.sqrt(3))*(1+(FWHM_shift/100))*(FWHM_init)})
             else : params = model.make_params(B0={'value': b0_init, 'min':y[b]*FWHM_init*0.9*(np.pi)**2*(x[b]-f0_shift)*4/np.sqrt(3), 'max':y[b]*FWHM_init*1.1*(np.pi)**2*(x[b]+f0_shift)*4/np.sqrt(3)}, x0={'value':0, 'min':0, 'vary':False}, f0={'value':x[b], 'min':x[b]-f0_shift, 'max':x[b]+f0_shift}, D={'value': 2*np.pi*FWHM_init/np.sqrt(3), 'min':(2*np.pi/np.sqrt(3))*(1-(FWHM_shift/100))*(FWHM_init), 'max':(2*np.pi/np.sqrt(3))*(1+(FWHM_shift/100))*(FWHM_init)})
-            out = model.fit(amplitude[condition], params, f=frequency[condition])
+            frequency_interp = np.arange(min(frequency[condition]),max(frequency[condition]),0.01)
+            amp_interp = np.interp(frequency_interp, frequency[condition], amplitude[condition])
+            out = model.fit(amp_interp, params, f=frequency_interp)
             B0, D, f0, x0 = out.summary()['best_values']['B0'], out.summary()['best_values']['D'], out.summary()['best_values']['f0'], out.summary()['best_values']['x0']
             y_fit = out.best_fit
-            f_maxHW, f_minHW = no_fit_FWHM(frequency[condition], y_fit)
+            f_maxHW, f_minHW = no_fit_FWHM(frequency_interp, y_fit, None, None)
             FWHM = f_maxHW - f_minHW
             integral_window=FWHM*per_integrale
             fig = go.Figure(layout=dict(height=500, width=900))
             fig.add_traces(go.Scatter(x=frequency, y=amplitude, mode='lines', name=test_choice,legendrank=1))
+            fig.add_traces(go.Scatter(x=frequency_interp, y=amp_interp, mode='lines', name='Extrapolation',legendrank=2))
             fig.add_traces(go.Scatter(x=np.arange(min(frequency),max(frequency),0.01), y=SHO_asym(B0, np.arange(min(frequency),max(frequency),0.01), x0, f0, D), mode='lines', name='Asymetric SHO fit on all f with df = 0.01 kHz'))
-            fig.add_traces(go.Scatter(x=frequency[condition], y=y_fit, mode='markers', name='Fit',legendrank=3))
-            fig.add_shape(type="rect", xref="x", yref="paper", x0=min(frequency[condition]), legendrank=2, y0=0, x1=max(frequency[condition]), y1=np.max(amplitude), showlegend=True, line=dict(color="black", width=2), fillcolor='black', name='Fit window', opacity=0.1)
+            fig.add_traces(go.Scatter(x=frequency_interp, y=y_fit, mode='markers', name='Fit',legendrank=4))
+            fig.add_shape(type="rect", xref="x", yref="paper", x0=min(frequency[condition]), legendrank=3, y0=0, x1=max(frequency[condition]), y1=np.max(amplitude), showlegend=True, line=dict(color="black", width=2), fillcolor='black', name='Fit window', opacity=0.1)
             fig.add_traces(go.Scatter(x=frequency[(frequency>=(f0-integral_window/2))&(frequency<=(f0+integral_window/2))], y=SHO_asym(B0, frequency[(frequency>=f0-(integral_window/2))&(frequency<=f0+(integral_window/2))], x0, f0, D), fill='tozeroy', marker={'opacity': 0}, mode='markers', name='Integration range'))
             fig.update_yaxes(title='Amplitude (mV)', range=[0, np.max(amplitude)])
             fig.update_xaxes(title='Frequency (kHz)', range=[freq_min-window_freq, freq_max+window_freq])
@@ -304,25 +313,27 @@ def SHO_Fit(frequency, amplitude, min_freq, max_freq, ylim, f0_shift, FWHM_shift
     if y[b]>ylim:
         condition = (frequency >= x[b]-half_window_freq) & (frequency <= x[b]+half_window_freq)
         x_fitwind, y_fitwind = frequency[condition], amplitude[condition]
-        try : no_fit_FWHM(x_fitwind, y_fitwind)
+        try : f_maxHW, f_minHW = no_fit_FWHM(x_fitwind, y_fitwind, i, j)
         except ValueError : D, FWHM_init, amp_max, center, B0, R2 = np.nan, np.nan, np.nan, np.nan, np.nan, np.nan
         else :
-            f_maxHW, f_minHW = no_fit_FWHM(x, y)
             FWHM_init = f_maxHW - f_minHW
             model = Model(SHO, independent_vars=['f'], nan_policy='raise')
             b0_init = y[b]*FWHM_init*(np.pi)**2*x[b]*4/np.sqrt(3)
             params = model.make_params(B0={'value':b0_init, 'min':y[b]*FWHM_init*(1-(FWHM_shift/100))*(np.pi)**2*(x[b]-f0_shift)*4/np.sqrt(3), 'max':y[b]*FWHM_init*(1+(FWHM_shift/100))*(np.pi)**2*(x[b]+f0_shift)*4/np.sqrt(3)}, D={'value': 2*np.pi*FWHM_init/np.sqrt(3), 'min':(2*np.pi/np.sqrt(3))*(1-(FWHM_shift/100))*(FWHM_init), 'max':(2*np.pi/np.sqrt(3))*(1+(FWHM_shift/100))*(FWHM_init)}, f0={'value':x[b], 'min':x[b]-f0_shift, 'max':x[b]+f0_shift})
-            out = model.fit(y_fitwind, params, f=x_fitwind)
+            frequency_interp = np.arange(min(frequency[condition]),max(frequency[condition]),0.01)
+            amp_interp = np.interp(frequency_interp, frequency[condition], amplitude[condition])
+            out = model.fit(amp_interp, params, f=frequency_interp)
             B0, D, center, R2 = out.summary()['best_values']['B0'], out.summary()['best_values']['D'], out.summary()['best_values']['f0'], out.rsquared
-            amp_max = max(SHO(B0, D, center, x_fitwind))
-    else: D, FWHM_init, amp_max, center, B0, R2 = np.nan, np.nan, x[b], np.nan, np.nan
+            amp_max = max(SHO(B0, D, center, frequency_interp))
+    else: D, FWHM_init, amp_max, center, B0, R2 = np.nan, np.nan, np.nan, x[b], np.nan, np.nan
     return D, FWHM_init, amp_max, center, B0, y[b], R2
 
 def SHO_integrale(B0, D, f0, frequency, amplitude, half_int_wind, i, j):
-    reduc_freq = frequency[(frequency>=f0-half_int_wind)&(frequency<=f0+half_int_wind)]
-    area_datas = np.trapz(amplitude[(frequency>=f0-half_int_wind)&(frequency<=f0+half_int_wind)], reduc_freq)
+    condition = (frequency>=f0-half_int_wind)&(frequency<=f0+half_int_wind)
+    frequency_interp = np.arange(min(frequency[condition]),max(frequency[condition]),0.01)
     if np.isnan(B0)==True : area_SHO=np.nan
-    else : area_SHO = np.trapz(SHO(B0, D, f0, reduc_freq), reduc_freq)
+    else : area_SHO = np.trapz(SHO(B0, D, f0, frequency_interp), frequency_interp)
+    area_datas = np.trapz(amplitude[condition], frequency[condition])
     return area_SHO, area_datas
 
 def SHO_plot(frequency, amplitude, test_choice, center, freq_min, freq_max, y_lim, f0_shift, FWHM_shift, window_freq, FWHM_threshold, per_integrale):
@@ -332,22 +343,24 @@ def SHO_plot(frequency, amplitude, test_choice, center, freq_min, freq_max, y_li
     else :
         condition = (frequency>=x[b]-half_window_freq) & (frequency<=x[b]+half_window_freq)
         model = Model(SHO, independent_vars=['f'], nan_policy='raise')
-        try : no_fit_FWHM(x, y)
+        try : f_maxHW, f_minHW = no_fit_FWHM(x, y, 'None', 'None')
         except ValueError : st.write(f'No peak found between {freq_min} and {freq_max} kHz.')
         else :
-            f_maxHW, f_minHW = no_fit_FWHM(x, y)
             FWHM_init = f_maxHW - f_minHW
             b0_init = y[b]*FWHM_init*(np.pi)**2*x[b]*4/np.sqrt(3)
             params = model.make_params(B0={'value':b0_init, 'min' :y[b]*FWHM_init*(1-(FWHM_shift/100))*(np.pi)**2*(x[b]-f0_shift)*4/np.sqrt(3), 'max':y[b]*FWHM_init*(1+(FWHM_shift/100))*(np.pi)**2*(x[b]+f0_shift)*4/np.sqrt(3)}, D={'value': 2*np.pi*FWHM_init/np.sqrt(3), 'min':(2*np.pi/np.sqrt(3))*(1-(FWHM_shift/100))*(FWHM_init), 'max':(2*np.pi/np.sqrt(3))*(1+(FWHM_shift/100))*(FWHM_init)}, f0={'value':x[b], 'min':x[b]-f0_shift, 'max':x[b]+f0_shift})
-            out = model.fit(amplitude[condition], params, f=frequency[condition])
+            frequency_interp = np.arange(min(frequency[condition]),max(frequency[condition]),0.01)
+            amp_interp = np.interp(frequency_interp, frequency[condition], amplitude[condition])
+            out = model.fit(amp_interp, params, f=frequency_interp)
             y_fit = out.best_fit
             B0, D, f0 = out.summary()['best_values']['B0'], out.summary()['best_values']['D'], out.summary()['best_values']['f0']  
             FWHM = D*np.sqrt(3)/(2*np.pi)
             integral_window = per_integrale*FWHM
             fig = go.Figure(layout=dict(height=500, width=900))
             fig.add_traces(go.Scatter(x=frequency, y=amplitude, mode='lines', name=test_choice, legendrank=1))
+            fig.add_traces(go.Scatter(x=frequency_interp, y=amp_interp, mode='lines', name='Extrapolation',legendrank=2))
             fig.add_traces(go.Scatter(x=np.arange(min(frequency),max(frequency),0.01), y= SHO(B0, D, f0, np.arange(min(frequency),max(frequency),0.01)), mode='lines', name='SHO fit on all f with df = 0.01 kHz'))
-            fig.add_traces(go.Scatter(x=frequency[condition], y=y_fit, mode='markers', name='Fit',legendrank=3))
+            fig.add_traces(go.Scatter(x=frequency_interp, y=y_fit, mode='markers', name='Fit',legendrank=3))
             fig.add_shape(type="rect", xref="x", yref="paper", x0=min(frequency[condition]), legendrank=2, y0=0, x1=max(frequency[condition]), y1=np.max(amplitude), showlegend=True, line=dict(color="black", width=2), fillcolor='black', name='Fit window', opacity=0.1)
             fig.add_traces(go.Scatter(x=frequency[(frequency>=(f0-integral_window/2))&(frequency<=(f0+integral_window/2))], y=SHO(B0, D, f0, frequency[(frequency>=(f0-integral_window/2))&(frequency<=(f0+integral_window/2))]), fill='tozeroy', marker={'opacity': 0}, mode='markers', name='Integration range'))
             fig.update_yaxes(title='Amplitude (mV)', range=[0, np.max(amplitude)])
@@ -386,20 +399,21 @@ def area_computing(frequencies, amplitude, n, m, cube_B0, cube_Damping, cube_FWH
 
 #%% Fonctions no fit
 
-def find_nearest(array, value):
+def find_nearest(array, value, i, j):
     array = np.asarray(array)
-    idx = (np.abs(array - value)).argmin()
+    try : idx = (np.abs(array - value)).argmin()
+    except ValueError: raise ValueError(f"Error occurred while finding nearest value for position ({i}, {j}).\n Here are some suggestions: extend the frequency range; check the data for any anomalies with the Visualising tab; increase the amplitude threshold.")
     return array[idx], idx
 
-def find_sym_nearest(array, value): #find the two nearest values of a symmetric curve
+def find_sym_nearest(array, value, i, j): #find the two nearest values of a symmetric curve
     imax = np.argmax(array)
-    y1, idx1 = find_nearest(array[:imax], value)
-    y2, idx2 = find_nearest(array[imax:], value)
+    y1, idx1 = find_nearest(array[:imax], value, i, j)
+    y2, idx2 = find_nearest(array[imax:], value, i, j)
     return ((y1, idx1), (y2, imax + idx2))
 
-def no_fit_FWHM(Xarray, Yarray):
+def no_fit_FWHM(Xarray, Yarray, i, j):
     YMAX = np.max(Yarray)
-    (y1, idx1), (y2, idx2) = find_sym_nearest(Yarray, YMAX/2)    
+    (y1, idx1), (y2, idx2) = find_sym_nearest(Yarray, YMAX/2, i, j)    
     return Xarray[idx2], Xarray[idx1]
 
 def no_fit(frequencies, cube, n, m, freq_min, freq_max, y_lim):
@@ -411,10 +425,10 @@ def no_fit(frequencies, cube, n, m, freq_min, freq_max, y_lim):
     for i, j in itertools.product(range(0,n,1), range(0,m,1)):
         Ycube = cube[i, j, i_minprox:i_maxprox]
         Ycube_interp = np.interp(f_interp, x, Ycube)        
-        try : no_fit_FWHM(f_interp, Ycube_interp)
+        try : no_fit_FWHM(f_interp, Ycube_interp, i, j)
         except ValueError : cube_FWHM[i, j], cube_amp[i, j], cube_f0[i, j] = np.nan, np.nan, np.nan
         else :
-            f_maxHW, f_minHW = no_fit_FWHM(f_interp, Ycube_interp)
+            f_maxHW, f_minHW = no_fit_FWHM(f_interp, Ycube_interp, i, j)
             cube_FWHM[i, j] = f_maxHW - f_minHW
             cube_amp[i, j] = np.max(Ycube)
             i_max = np.argmax(Ycube) 
@@ -446,7 +460,7 @@ def nofit_plot(frequency, amplitude, test_choice, center, freq_min, freq_max, y_
         f_maxprox, i_maxprox = find_nearest(frequency, freq_max)
         x = frequency[i_minprox:i_maxprox]
         y = amplitude[i_minprox:i_maxprox]
-        try : no_fit_FWHM(x, y)
+        try : no_fit_FWHM(x, y, i, j)
         except ValueError : st.write(f'No peak found between {freq_min} and {freq_max} kHz.')
         else :
             f_interp = np.arange(f_minprox, f_maxprox, 0.1)
@@ -970,8 +984,8 @@ with loadingTab:
             c2_3, c2_4 = st.columns(2, vertical_alignment='bottom')
             with c2_3 : FWHM_thresh = int(st.number_input('FWHM threshold (kHz)')); DT = int(st.number_input('If not FWHM threshold, enter damping threshold (kHz)'))
             with c2_4 :
-                if st.button("Load datas"):
-                    reset_loaded_datas()
+                if st.button("Load datas", on_click=reset_loaded_datas):
+                    st.session_state.cube_topo_l=st.session_state.cube_topo.copy()
                     if st.session_state.SHO_area_load == True :
                         if filename+"_AIRE-"+str(fit_function_load)+"_"+str(freq)+"kHz_FWHM-thresh_"+str(FWHM_thresh)+".txt" in load_file_list : st.session_state.cube_Area_SHO_l=np.loadtxt(LoadingPath+filename+"_AIRE-"+str(fit_function_load)+"_"+str(freq)+"kHz_FWHM-thresh_"+str(FWHM_thresh)+".txt", dtype=np.float64, delimiter=';').reshape((st.session_state.n,st.session_state.m)); st.session_state.loaded_datas["cube_Area_SHO_l"] = True
                         elif filename+"_AREA-"+str(fit_function_load)+"_"+str(freq)+"kHz_FWHM-thresh_"+str(FWHM_thresh)+".txt" in load_file_list : st.session_state.cube_Area_SHO_l=np.loadtxt(LoadingPath+filename+"_AREA-"+str(fit_function_load)+"_"+str(freq)+"kHz_FWHM-thresh_"+str(FWHM_thresh)+".txt", dtype=np.float64, delimiter=';').reshape((st.session_state.n,st.session_state.m)); st.session_state.loaded_datas["cube_Area_SHO_l"] = True
@@ -1006,7 +1020,7 @@ with loadingTab:
                     if st.session_state.SHO_FWHM_load == True :
                         if filename+"_FWHM-"+str(fit_function_load)+"_"+str(freq)+"kHz.txt" in load_file_list : st.session_state.cube_FWHM_l=np.loadtxt(LoadingPath+filename+"_FWHM-"+str(fit_function_load)+"_"+str(freq)+"kHz.txt", dtype=np.float64, delimiter=';').reshape((st.session_state.n,st.session_state.m)); st.session_state.loaded_datas["cube_FWHM_l"] = True
                         elif filename+"_FWMH_"+str(freq)+"kHz.txt" in load_file_list : st.session_state.cube_FWHM_l=np.loadtxt(LoadingPath+filename+"_FWMH_"+str(freq)+"kHz.txt", dtype=np.float64, delimiter=';').reshape((st.session_state.n,st.session_state.m)); st.session_state.loaded_datas["cube_FWHM_l"] = True
-                        elif filename+"_FWMH_"+str(freq)+".0kHz.txt" in load_file_list : st.session_state.cube_FWHM_l=np.loadtxt(LoadingPath+filename+"_FWMH_"+str(freq)+"kHz.0.txt", dtype=np.float64, delimiter=';').reshape((st.session_state.n,st.session_state.m)); st.session_state.loaded_datas["cube_FWHM_l"] = True
+                        elif filename+"_FWMH_"+str(freq)+".0kHz.txt" in load_file_list : st.session_state.cube_FWHM_l=np.loadtxt(LoadingPath+filename+"_FWMH_"+str(freq)+".0kHz.txt", dtype=np.float64, delimiter=';').reshape((st.session_state.n,st.session_state.m)); st.session_state.loaded_datas["cube_FWHM_l"] = True
                         else : toast_appearance() ; st.toast(f'{fit_function_load} FWHM file not found.', icon="🚨", duration="infinite")
                     if st.session_state.datas_FWHM_load == True :
                         if filename+"_FWHM-datas_"+str(freq)+"kHz.txt" in load_file_list : st.session_state.cube_FWHM_datas_l=np.loadtxt(LoadingPath+filename+"_FWHM-datas_"+str(freq)+"kHz.txt", dtype=np.float64, delimiter=';').reshape((st.session_state.n,st.session_state.m)); st.session_state.loaded_datas["cube_FWHM_datas_l"] = True
@@ -1029,9 +1043,8 @@ with loadingTab:
                         else : toast_appearance() ; st.toast('Asymetric SHO g0 file not found.', icon="🚨", duration="infinite")
                     if st.session_state.SHO_R2_load == True :
                         if filename+"_R2-"+str(fit_function_load)+"_"+str(freq)+"kHz.txt" in load_file_list : st.session_state.cube_R2_l=np.loadtxt(LoadingPath+filename+"_R2-"+str(fit_function_load)+"_"+str(freq)+"kHz.txt", dtype=np.float64, delimiter=';').reshape((st.session_state.n,st.session_state.m)); st.session_state.loaded_datas["cube_R2_l"] = True
-                        else : toast_appearance() ; st.toast('R² score fit file not found.', icon="🚨", duration="infinite")
-                    st.session_state.cube_topo_l=st.session_state.cube_topo.copy()    
-        load_to_plot=[i for i in st.session_state.loaded_datas if st.session_state.loaded_datas[i]==True]
+                        else : toast_appearance() ; st.toast('R² score fit file not found.', icon="🚨", duration="infinite")    
+        st.session_state.load_to_plot=[i for i in st.session_state.loaded_datas if st.session_state.loaded_datas[i]==True]
         with st.expander('General parameters of the results figures') :
             c1_e, c2_e, c3_e, c4_e, c5_e = st.columns([0.15,0.25,0.15,0.15,0.15], vertical_alignment='center')
             with c1_e: results_height = st.number_input('Height in pixels', key='results_height_load', min_value=0, value=400)
@@ -1056,7 +1069,7 @@ with loadingTab:
             if 'cube_g0_l' in st.session_state : st.session_state.plot_params_cube_g0_l = {'cube':st.session_state.cube_g0_l, 'color_index':10, 'map_origin':st.session_state.map_origin_load, 'colorbar_label':"g0", 'title':"g0 asymetric SHO function", 'results_width':st.session_state.results_width_load, 'results_height':st.session_state.results_height_load,  'bins_width_initial':1, 'n':st.session_state.n, 'm':st.session_state.m, 'key':'ax12_l', 'x':st.session_state.x, 'y':st.session_state.y, 'xy_unit':st.session_state.xy_unit, 'scale_units':st.session_state.map_load}            
             if 'cube_Q_l' in st.session_state : st.session_state.plot_params_cube_Q_l = {'cube':st.session_state.cube_Q_l, 'color_index':10, 'map_origin':st.session_state.map_origin_load, 'colorbar_label':"Q factor", 'title':"Q factor", 'results_width':st.session_state.results_width_load, 'results_height':st.session_state.results_height_load,  'bins_width_initial':1, 'n':st.session_state.n, 'm':st.session_state.m, 'key':'ax13_l', 'x':st.session_state.x, 'y':st.session_state.y, 'xy_unit':st.session_state.xy_unit, 'scale_units':st.session_state.map_load}
             if 'cube_R2_l' in st.session_state : st.session_state.plot_params_cube_R2_l = {'cube':st.session_state.cube_R2_l, 'color_index':34, 'map_origin':st.session_state.map_origin_load, 'colorbar_label':"R²", 'title':"R² fit score", 'results_width':st.session_state.results_width_load, 'results_height':st.session_state.results_height_load,  'bins_width_initial':0.005, 'n':st.session_state.n, 'm':st.session_state.m, 'key':'ax14_l', 'x':st.session_state.x, 'y':st.session_state.y, 'xy_unit':st.session_state.xy_unit, 'scale_units':st.session_state.map_load}
-            k=iter(load_to_plot)
+            k=iter(st.session_state.load_to_plot)
             ls = st.columns(st.session_state.plots_per_row)
             for i in itertools.cycle(ls) :
                 with i :
