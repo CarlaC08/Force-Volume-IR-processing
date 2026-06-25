@@ -209,12 +209,12 @@ def SHO_asym_Fit(frequency, amplitude, min_freq, max_freq, ylim, window_freq, f0
     b=np.where(y==y.max())[0][0] # Find the max
     if y[b]>ylim:
         condition = (frequency >= x[b]-half_window_freq) & (frequency <= x[b]+half_window_freq)
-        model = Model(SHO_asym, independent_vars=['f'], nan_policy='raise')
         x_fitwind, y_fitwind = frequency[condition], amplitude[condition]
         try :  f_maxHW, f_minHW = no_fit_FWHM(x_fitwind, y_fitwind, i, j)
         except ValueError : D, FWHM_initial, FWHM, amp_max, center, B0, f0, x0, R2 = np.nan, np.nan, np.nan, np.nan, x[b], np.nan, np.nan, np.nan, np.nan
         else :
             FWHM_initial = f_maxHW - f_minHW
+            model = Model(SHO_asym, independent_vars=['f'], nan_policy='raise')
             b0_init = y[b]*FWHM_initial*(np.pi)**2*x[b]*4/np.sqrt(3)
             if y_fitwind[0]<y_fitwind[-1] : params = model.make_params(B0={'value':b0_init, 'min':y[b]*FWHM_initial*(1-(FWHM_shift/100))*(np.pi)**2*(x[b]-f0_shift)*4/np.sqrt(3), 'max':y[b]*FWHM_initial*(1+(FWHM_shift/100))*(np.pi)**2*(x[b]+f0_shift)*4/np.sqrt(3)}, x0={'value':2*x[b], 'expr':'2*f0 '}, f0={'value':x[b], 'min':x[b]-f0_shift, 'max':x[b]+f0_shift}, D={'value': 2*np.pi*FWHM_initial/np.sqrt(3), 'min':(2*np.pi/np.sqrt(3))*(1-(FWHM_shift/100))*(FWHM_initial), 'max':(2*np.pi/np.sqrt(3))*(1+(FWHM_shift/100))*(FWHM_initial)})
             elif y_fitwind[0]>y_fitwind[-1] : params = model.make_params(B0={'value':b0_init, 'min':y[b]*FWHM_initial*(1-(FWHM_shift/100))*(np.pi)**2*(x[b]-f0_shift)*4/np.sqrt(3), 'max':y[b]*FWHM_initial*(1+(FWHM_shift/100))*(np.pi)**2*(x[b]+f0_shift)*4/np.sqrt(3)}, x0={'value':0, 'min':0, 'vary':False}, f0={'value':x[b], 'min':x[b]-f0_shift, 'max':x[b]+f0_shift}, D={'value': 2*np.pi*FWHM_initial/np.sqrt(3), 'min':(2*np.pi/np.sqrt(3))*(1-(FWHM_shift/100))*(FWHM_initial), 'max':(2*np.pi/np.sqrt(3))*(1+(FWHM_shift/100))*(FWHM_initial)})
@@ -314,7 +314,7 @@ def SHO_Fit(frequency, amplitude, min_freq, max_freq, ylim, f0_shift, FWHM_shift
         condition = (frequency >= x[b]-half_window_freq) & (frequency <= x[b]+half_window_freq)
         x_fitwind, y_fitwind = frequency[condition], amplitude[condition]
         try : f_maxHW, f_minHW = no_fit_FWHM(x_fitwind, y_fitwind, i, j)
-        except ValueError : D, FWHM_init, amp_max, center, B0, R2 = np.nan, np.nan, np.nan, np.nan, np.nan, np.nan
+        except ValueError : D, FWHM_init, amp_max, center, B0, R2 = np.nan, np.nan, np.nan, x[b], np.nan, np.nan
         else :
             FWHM_init = f_maxHW - f_minHW
             model = Model(SHO, independent_vars=['f'], nan_policy='raise')
