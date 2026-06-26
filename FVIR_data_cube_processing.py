@@ -515,6 +515,8 @@ def multi_plot(frequency, cube, number, ymax, width, height, n_list, m_list, col
 
 @st.cache_data(max_entries=10, show_spinner=False)
 def plot_results_pixels(cube, map_min, map_max, map_origin, color_map, colorbar_label, title, results_width, results_height, scale, bins_width, n, m, key, x=None, y=None, xy_unit=None):
+    if st.context.theme.type == "light" : color = "black"
+    elif st.context.theme.type == "dark" : color = "white"
     fig = make_subplots(rows=1, cols=2, column_widths=[4,1], subplot_titles = [title, colorbar_label])
     if map_origin=='upper' : yorder='reversed'
     elif map_origin=='lower' : yorder=True
@@ -523,8 +525,8 @@ def plot_results_pixels(cube, map_min, map_max, map_origin, color_map, colorbar_
     fig.add_trace(go.Histogram(y=data_rescale, ybins_size=bins_width, orientation='h', marker_color='grey', hovertemplate ='Range : %{y}' + '<extra></extra>' + '<br> Count : %{x}'), row=1, col=2)
     fig.update_layout(height=results_height, width=results_width, xaxis=dict(title='m (pixel)', scaleanchor="y"), yaxis_title='n (pixel)', xaxis2=dict(title='Count'), yaxis2 = dict(range=[map_min, map_max]), font_color='black', margin=dict(l=60, r=0, t=30, b=60, pad=0, autoexpand=False))
     fig.layout.annotations[1].update(x=0.81)
-    fig.update_xaxes(ticks="outside", tickwidth=1, tickcolor='black', tickfont_color='black', title_font_color='black', ticklen=7)
-    fig.update_yaxes(ticks="outside", autorange=yorder, tickwidth=1, tickcolor='black', tickfont_color='black', title_font_color='black', ticklen=7, col=1)
+    fig.update_xaxes(ticks="outside", tickwidth=1, tickcolor=color, tickfont_color=color, title_font_color=color, ticklen=7)
+    fig.update_yaxes(ticks="outside", autorange=yorder, tickwidth=1, tickcolor=color, tickfont_color=color, title_font_color=color, ticklen=7, col=1)
     fig.update_yaxes(showticklabels=False, col=2); fig.update_xaxes(col=2, tickangle=45, type=scale)
     return fig
 
@@ -547,6 +549,8 @@ def map_plots(cube, color_index, map_origin, colorbar_label, title, results_widt
 
 @st.cache_data(max_entries=10, show_spinner=False)
 def plot_results_size(cube, map_min, map_max, map_origin, color_map, colorbar_label, title, results_width, results_height, scale, bins_width, n, m, key, x, y, xy_unit):
+    if st.context.theme.type == "light" : color = "black"
+    elif st.context.theme.type == "dark" : color = "white"
     fig = make_subplots(rows=1, cols=2, column_widths=[4,1], subplot_titles = [title, colorbar_label])
     if map_origin=='upper' : yorder='reversed'
     elif map_origin=='lower' : yorder=True    
@@ -555,8 +559,8 @@ def plot_results_size(cube, map_min, map_max, map_origin, color_map, colorbar_la
     fig.add_trace(go.Histogram(y=data_rescale, ybins_size=bins_width, orientation='h', marker_color='grey', hovertemplate ='Range : %{y}' + '<extra></extra>' + '<br> Count : %{x}'), row=1, col=2)
     fig.update_layout(height=results_height, width=results_width, xaxis=dict(title='x ('+xy_unit+')', scaleanchor="y"), yaxis_title='y ('+xy_unit+')', xaxis2=dict(title='Count'), yaxis2 = dict(range=[map_min, map_max]), font_color='black', margin=dict(l=60, r=0, t=30, b=60, pad=0, autoexpand=False))
     fig.layout.annotations[1].update(x=0.81)
-    fig.update_xaxes(ticks="outside", tickwidth=1, tickcolor='black', tickfont_color='black', title_font_color='black', ticklen=7)
-    fig.update_yaxes(ticks="outside", autorange=yorder, tickwidth=1, tickcolor='black', tickfont_color='black', title_font_color='black', ticklen=7, col=1)
+    fig.update_xaxes(ticks="outside", tickwidth=1, tickcolor=color, tickfont_color=color, title_font_color=color, ticklen=7)
+    fig.update_yaxes(ticks="outside", autorange=yorder, tickwidth=1, tickcolor=color, tickfont_color=color, title_font_color=color, ticklen=7, col=1)
     fig.update_yaxes(showticklabels=False, col=2); fig.update_xaxes(col=2, tickangle=45, type=scale)
     return fig
 
