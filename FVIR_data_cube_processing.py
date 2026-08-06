@@ -5,6 +5,16 @@ Created on Mon Nov 18 12:15:01 2024
 @author: collange
 """
 #%% Packages
+import warnings
+
+# #### AI-ASSISTED BLOCK START [GPT-5.3-Codex | 2026-08-04 | no external source code copied]
+# AI intent: reduce non-actionable warning noise (lmfit/uncertainties) so real fitting/runtime errors stay visible.
+# Silence known third-party warnings from lmfit/uncertainties (no actionable change in app code).
+warnings.filterwarnings("ignore", message=r"Using UFloat objects with std_dev==0 may give unexpected results\.", category=UserWarning)
+warnings.filterwarnings("ignore", message=r"AffineScalarFunc\.error_components\(\).*deprecated", category=FutureWarning)
+warnings.filterwarnings("ignore", message=r"AffineScalarFunc\.derivatives\(\).*deprecated", category=FutureWarning)
+# #### AI-ASSISTED BLOCK END
+
 import streamlit as st
 from st_flexible_callout_elements import flexible_success
 from matplotlib.colors import *
@@ -20,20 +30,11 @@ from joblib import Parallel, delayed
 import pandas as pd
 import numpy as np
 import os as os
-import warnings
 import ctypes
 from ctypes import wintypes, windll
 from pathlib import Path
 from scipy.signal import savgol_filter
 import win32api
-
-# #### AI-ASSISTED BLOCK START [GPT-5.3-Codex | 2026-08-04 | no external source code copied]
-# AI intent: reduce non-actionable warning noise (lmfit/uncertainties) so real fitting/runtime errors stay visible.
-# Silence known third-party warnings from lmfit/uncertainties (no actionable change in app code).
-warnings.filterwarnings("ignore", message=r"Using UFloat objects with std_dev==0 may give unexpected results\.", category=UserWarning)
-warnings.filterwarnings("ignore", message=r"AffineScalarFunc\.error_components\(\).*deprecated", category=FutureWarning)
-warnings.filterwarnings("ignore", message=r"AffineScalarFunc\.derivatives\(\).*deprecated", category=FutureWarning)
-# #### AI-ASSISTED BLOCK END
 
 #%% Variables
 if 'original_path' not in st.session_state : st.session_state.original_path = os.getcwd()
@@ -961,7 +962,7 @@ with processingTab:
         with c7_proc.popover('Datas to save'):
             if st.session_state.fit_choice == 'None' : check_state = True; check_value = False
             else : check_state = False; check_value = True
-            st.checkbox('SHO area', value=check_value, key='SHO_area_save', disabled=check_state); st.checkbox('SHO maximal amplitude', value=check_value, key='SHO_amp_save', disabled=check_state); st.checkbox('Datas area', value=check_state, key='datas_area_save'); st.checkbox('Datas maximal amplitude', value=check_state, key='datas_amp_save'); st.checkbox('SHO central frequency', value=check_value, key='central_freq_save', disabled=check_state); st.checkbox('Datas frequency', value=check_value, key='datas_freq_save', disabled=check_state); st.checkbox('SHO FWHM', value=check_value, key='SHO_FWHM_save', disabled=check_state); st.checkbox('Datas FWHM', value=check_state, key='datas_FWHM_save'); st.checkbox('SHO damping', value=False, key='SHO_damping_save', disabled=check_state); st.checkbox('Q factor', value=False, key='Q_factor_save'); st.checkbox('SHO B0 constant', value=False, key='SHO_B0_save', disabled=check_state); st.checkbox('R² fit score', value=False, key='R2_save', disabled=check_state)
+            st.checkbox('SHO area', value=check_value, key='SHO_area_save', disabled=check_state); st.checkbox('SHO maximal amplitude', value=check_value, key='SHO_amp_save', disabled=check_state); st.checkbox('Datas area', value=check_state, key='datas_area_save'); st.checkbox('Datas maximal amplitude', value=check_state, key='datas_amp_save'); st.checkbox('SHO central frequency', value=check_value, key='central_freq_save', disabled=check_state); st.checkbox('Datas frequency', value=check_value, key='datas_freq_save'); st.checkbox('SHO FWHM', value=check_value, key='SHO_FWHM_save', disabled=check_state); st.checkbox('Datas FWHM', value=check_state, key='datas_FWHM_save'); st.checkbox('SHO damping', value=False, key='SHO_damping_save', disabled=check_state); st.checkbox('Q factor', value=False, key='Q_factor_save'); st.checkbox('SHO B0 constant', value=False, key='SHO_B0_save', disabled=check_state); st.checkbox('R² fit score', value=False, key='R2_save', disabled=check_state)
             if st.session_state.fit_choice == 'ASHO' : st.checkbox('ASHO x0', value=False, key='SHO_x0_save'); st.checkbox('ASHO g0', value=False, key='SHO_f0_save')
                
         if c8_proc.button('Save results'):
