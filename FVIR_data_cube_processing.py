@@ -35,6 +35,7 @@ from ctypes import wintypes, windll
 from pathlib import Path
 from scipy.signal import savgol_filter
 import win32api
+from datetime import datetime, timezone
 
 #%% Variables
 if 'original_path' not in st.session_state : st.session_state.original_path = os.getcwd()
@@ -615,14 +616,14 @@ def map_plots(cube, color_index, map_origin, colorbar_label, title, results_widt
         c1, c2 = st.columns(2)
         if np.nanmax(cube) > 1e5 : vmax = 1e5
         else : vmax = float(np.nanmax(cube))
-        with c1 : map_max = st.number_input('Upper limit', value=float(vmax), key=key+'_max'); scale = st.radio('Count axis scale', ['linear', 'log'], horizontal=True, key=key+'_scale')
-        with c2 : map_min = st.number_input('Lower limit', value=float(np.nanmin(cube)), key=key+'_min'); bins_width = st.number_input('Width of intervals', min_value=0.001, value=float(bins_width_initial), key=key+'_bins')    
+        with c1 : map_width = st.number_input('Width', value=results_width, key=key+'_width');  map_max = st.number_input('Upper limit', value=float(vmax), key=key+'_max'); scale = st.radio('Count axis scale', ['linear', 'log'], horizontal=True, key=key+'_scale')
+        with c2 : map_height = st.number_input('Height', value=results_height, key=key+'_height'); map_min = st.number_input('Lower limit', value=float(np.nanmin(cube)), key=key+'_min'); bins_width = st.number_input('Width of intervals', min_value=0.001, value=float(bins_width_initial), key=key+'_bins')    
     if scale_units == None :
         with c1 : units = st.radio("Units to use:", ["Pixels", "Size"], key='units_'+key, horizontal=True)
-        if units == 'Pixels' : fig = plot_results_pixels(cube, map_min, map_max, map_origin, color_map, colorbar_label, title, results_width, results_height, scale, bins_width, n, m, key, x=None, y=None, xy_unit=None)
-        else : fig = plot_results_size(cube, map_min, map_max, map_origin, color_map, colorbar_label, title, results_width, results_height, scale, bins_width, n, m, key, x, y, xy_unit)
-    elif scale_units == 'Pixels' : fig = plot_results_pixels(cube, map_min, map_max, map_origin, color_map, colorbar_label, title, results_width, results_height, scale, bins_width, n, m, key, x=None, y=None, xy_unit=None)
-    elif scale_units == 'Size' : fig = plot_results_size(cube, map_min, map_max, map_origin, color_map, colorbar_label, title, results_width, results_height, scale, bins_width, n, m, key, x, y, xy_unit)
+        if units == 'Pixels' : fig = plot_results_pixels(cube, map_min, map_max, map_origin, color_map, colorbar_label, title, map_width, map_height, scale, bins_width, n, m, key, x=None, y=None, xy_unit=None)
+        else : fig = plot_results_size(cube, map_min, map_max, map_origin, color_map, colorbar_label, title, map_width, map_height, scale, bins_width, n, m, key, x, y, xy_unit)
+    elif scale_units == 'Pixels' : fig = plot_results_pixels(cube, map_min, map_max, map_origin, color_map, colorbar_label, title, map_width, map_height, scale, bins_width, n, m, key, x=None, y=None, xy_unit=None)
+    elif scale_units == 'Size' : fig = plot_results_size(cube, map_min, map_max, map_origin, color_map, colorbar_label, title, map_width, map_height, scale, bins_width, n, m, key, x, y, xy_unit)
     return fig
 
 
@@ -732,7 +733,7 @@ with visualisingTab:
                     if filename+"_sections_n"+str(st.session_state.x_select)+".txt"  in os.listdir(Saved_path):
                         st.write("Succesfully downloaded")
         else :
-            fig_topo = map_plots(st.session_state.cube_topo, 103, 'lower', 'Deflection', 'Topography map', 810, 600, 500, st.session_state.n, st.session_state.m, 'TOPO', st.session_state.x, st.session_state.y, st.session_state.xy_unit, None)
+            fig_topo = map_plots(st.session_state.cube_topo, 103, 'lower', 'Deflection', 'Topography map', 850, 600, 500, st.session_state.n, st.session_state.m, 'TOPO', st.session_state.x, st.session_state.y, st.session_state.xy_unit, None)
             st.plotly_chart(fig_topo, width='content', on_select="ignore")
         if st.toggle("Display frequency spectrum", key='freq_plot') :
             container = st.container()
@@ -1079,8 +1080,9 @@ with loadingTab:
             if Path_check : LoadingPath = st.text_input('Enter the path here.')+'/'
             else : LoadingPath = Saved_path
             load_file_list = os.listdir(LoadingPath)
+            c_name, c_date = st.columns([3,1])
             for i in load_file_list:
-                if (filename in i) and (('AREA' in i ) or ('AIRE' in i)) : st.write(i)
+                if (filename in i) and (('AREA' in i ) or ('AIRE' in i)) : c_name.write(i); c_date.write('last modified : ' + datetime.fromtimestamp(os.stat(LoadingPath+i).st_mtime).strftime('%Y-%m-%d %H:%M'))
         with c2 :
             fit_function_load = st.radio('Fitting function', ['ASHO', 'SHO'], format_func=lambda x: {'ASHO': "Asymetric SHO",'SHO': "SHO"}.get(x), horizontal=True)
             c2_1, c2_2 = st.columns(2, vertical_alignment='bottom')
