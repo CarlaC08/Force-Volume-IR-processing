@@ -245,7 +245,7 @@ def SHO_asym_Fit(frequency, amplitude, min_freq, max_freq, ylim, window_freq, f0
         b0_init = yb*FWHM_initial*(np.pi)**2*xb*4/np.sqrt(3)
         if y_fitwind[0]<y_fitwind[-1]: params = model.make_params(B0={'value':b0_init, 'min':yb*FWHM_initial*(1-(FWHM_shift/100))*(np.pi)**2*(xb-f0_shift)*4/np.sqrt(3), 'max':yb*FWHM_initial*(1+(FWHM_shift/100))*(np.pi)**2*(xb+f0_shift)*4/np.sqrt(3)}, x0={'value':2*xb, 'expr':'2*f0 '}, f0={'value':xb, 'min':xb-f0_shift, 'max':xb+f0_shift}, D={'value': 2*np.pi*FWHM_initial/np.sqrt(3), 'min':(2*np.pi/np.sqrt(3))*(1-(FWHM_shift/100))*(FWHM_initial), 'max':(2*np.pi/np.sqrt(3))*(1+(FWHM_shift/100))*(FWHM_initial)})
         elif y_fitwind[0]>y_fitwind[-1]: params = model.make_params(B0={'value':b0_init, 'min':yb*FWHM_initial*(1-(FWHM_shift/100))*(np.pi)**2*(xb-f0_shift)*4/np.sqrt(3), 'max':yb*FWHM_initial*(1+(FWHM_shift/100))*(np.pi)**2*(xb+f0_shift)*4/np.sqrt(3)}, x0={'value':0, 'min':0, 'vary':False}, f0={'value':xb, 'min':xb-f0_shift, 'max':xb+f0_shift}, D={'value': 2*np.pi*FWHM_initial/np.sqrt(3), 'min':(2*np.pi/np.sqrt(3))*(1-(FWHM_shift/100))*(FWHM_initial), 'max':(2*np.pi/np.sqrt(3))*(1+(FWHM_shift/100))*(FWHM_initial)})
-        else: params = model.make_params(B0={'value':1e5, 'min':0}, x0={'value':0, 'min':yb*FWHM_initial*(1-(FWHM_shift/100))*(np.pi)**2*(xb-f0_shift)*4/np.sqrt(3), 'max':yb*FWHM_initial*(1+(FWHM_shift/100))*(np.pi)**2*(xb+f0_shift)*4/np.sqrt(3)}, f0={'value':xb, 'min':xb-f0_shift, 'max':xb+f0_shift}, D={'value': 2*np.pi*FWHM_initial/np.sqrt(3), 'min':(2*np.pi/np.sqrt(3))*(1-(FWHM_shift/100))*(FWHM_initial), 'max':(2*np.pi/np.sqrt(3))*(1+(FWHM_shift/100))*(FWHM_initial)})
+        else: params = model.make_params(B0={'value':b0_init, 'min':0}, x0={'value':0, 'min':0, 'vary':False}, f0={'value':xb, 'min':xb-f0_shift, 'max':xb+f0_shift}, D={'value': 2*np.pi*FWHM_initial/np.sqrt(3), 'min':(2*np.pi/np.sqrt(3))*(1-(FWHM_shift/100))*(FWHM_initial), 'max':(2*np.pi/np.sqrt(3))*(1+(FWHM_shift/100))*(FWHM_initial)})
         frequency_interp = np.arange(min(x_fitwind), max(x_fitwind), 0.01)
         if frequency_interp.size < 3: raise ValueError("Insufficient interpolation points")
         amp_interp = np.interp(frequency_interp, x_fitwind, y_fitwind)
@@ -268,6 +268,7 @@ def SHO_asym_Fit_safe(frequency, amplitude, min_freq, max_freq, ylim, window_fre
     try:
         # AI intent: enforce worker-local warning filters on Windows joblib workers.
         # Joblib workers may not inherit main-process warning filters on Windows.
+        warnings.filterwarnings("ignore", message=r"Using UFloat objects with std_dev==0 may give unexpected results\.", category=UserWarning, module=r"uncertainties\.core")
         warnings.filterwarnings("ignore", category=UserWarning, module=r"lmfit\.parameter")
         warnings.filterwarnings("ignore", category=FutureWarning, module=r"uncertainties\.core")
         # AI intent: isolate per-pixel failures so one bad spectrum does not stop the whole parallel batch.
@@ -290,7 +291,7 @@ def SHO_asym_parameters(frequency, amplitude, n, m, freq_min, freq_max, ylim, f0
     output_generator = parallel(delayed(SHO_asym_Fit_safe)(frequency, amplitude[i, j], freq_min, freq_max, ylim, window_freq, f0_shift, FWHM_shift, i, j) for i in range(n) for j in range(m))
     res=list(output_generator)
     cube_Damping, cube_FWHM_init, cube_FWHM, cube_Amp, cube_center, cube_B0, cube_f0, cube_x0, cube_ymax, cube_fdatas, cube_R2 = np.asarray(res).T
-    cube_Damping, cube_FWHM_init, cube_FWHM, cube_Amp, cube_center, cube_f0, cube_x0, cube_B0, cube_ymax, cube_fdatas, cube_R2 = cube_Damping.reshape(n, m), cube_FWHM_init.reshape(n, m), cube_FWHM.reshape(n, m), cube_Amp.reshape(n, m), cube_center.reshape(n, m), cube_f0.reshape(n, m), cube_x0.reshape(n, m), cube_B0.reshape(n, m), cube_ymax.reshape(n, m), cube_fdatas.reshape(n, m), cube_R2.reshape(n, m)
+    cube_Damping, cube_FWHM_init, cube_FWHM, cube_Amp, cube_center, cube_B0, cube_f0, cube_x0, cube_ymax, cube_fdatas, cube_R2 = cube_Damping.reshape(n, m), cube_FWHM_init.reshape(n, m), cube_FWHM.reshape(n, m), cube_Amp.reshape(n, m), cube_center.reshape(n, m), cube_B0.reshape(n, m), cube_f0.reshape(n, m), cube_x0.reshape(n, m), cube_ymax.reshape(n, m), cube_fdatas.reshape(n, m), cube_R2.reshape(n, m)
     return cube_Amp, cube_center, cube_x0, cube_FWHM, cube_FWHM_init, cube_Damping, cube_B0, cube_f0, cube_ymax, cube_fdatas, cube_R2
 
 @st.cache_data(max_entries=1, show_spinner="Computing the area to all the position")
@@ -324,7 +325,7 @@ def SHO_asym_plot(frequency, amplitude, test_choice, center, freq_min, freq_max,
             FWHM_init = f_maxHW - f_minHW
             b0_init = y[b]*FWHM_init*(np.pi)**2*x[b]*4/np.sqrt(3)
             if amplitude[condition][0]<amplitude[condition][-1] : params = model.make_params(B0={'value':b0_init, 'min':y[b]*FWHM_init*(1-(FWHM_shift/100))*(np.pi)**2*(x[b]-f0_shift)*4/np.sqrt(3), 'max':y[b]*FWHM_init*(1+(FWHM_shift/100))*(np.pi)**2*(x[b]+f0_shift)*4/np.sqrt(3)}, x0={'value':2*x[b], 'expr':'2*f0 '}, f0={'value':x[b], 'min':x[b]-f0_shift, 'max':x[b]+f0_shift}, D={'value': 2*np.pi*FWHM_init/np.sqrt(3), 'min':(2*np.pi/np.sqrt(3))*(1-(FWHM_shift/100))*(FWHM_init), 'max':(2*np.pi/np.sqrt(3))*(1+(FWHM_shift/100))*(FWHM_init)})
-            else : params = model.make_params(B0={'value': b0_init, 'min':y[b]*FWHM_init*0.9*(np.pi)**2*(x[b]-f0_shift)*4/np.sqrt(3), 'max':y[b]*FWHM_init*1.1*(np.pi)**2*(x[b]+f0_shift)*4/np.sqrt(3)}, x0={'value':0, 'min':0, 'vary':False}, f0={'value':x[b], 'min':x[b]-f0_shift, 'max':x[b]+f0_shift}, D={'value': 2*np.pi*FWHM_init/np.sqrt(3), 'min':(2*np.pi/np.sqrt(3))*(1-(FWHM_shift/100))*(FWHM_init), 'max':(2*np.pi/np.sqrt(3))*(1+(FWHM_shift/100))*(FWHM_init)})
+            else : params = model.make_params(B0={'value': b0_init, 'min':y[b]*FWHM_init*(1-(FWHM_shift/100))*(np.pi)**2*(x[b]-f0_shift)*4/np.sqrt(3), 'max':y[b]*FWHM_init*(1+(FWHM_shift/100))*(np.pi)**2*(x[b]+f0_shift)*4/np.sqrt(3)}, x0={'value':0, 'min':0, 'vary':False}, f0={'value':x[b], 'min':x[b]-f0_shift, 'max':x[b]+f0_shift}, D={'value': 2*np.pi*FWHM_init/np.sqrt(3), 'min':(2*np.pi/np.sqrt(3))*(1-(FWHM_shift/100))*(FWHM_init), 'max':(2*np.pi/np.sqrt(3))*(1+(FWHM_shift/100))*(FWHM_init)})
             frequency_interp = np.arange(min(frequency[condition]),max(frequency[condition]),0.01)
             amp_interp = np.interp(frequency_interp, frequency[condition], amplitude[condition])
             out = model.fit(amp_interp, params, f=frequency_interp)
