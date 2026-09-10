@@ -279,9 +279,19 @@ def SHO_asym_Fit_safe(frequency, amplitude, min_freq, max_freq, ylim, window_fre
 
 def SHO_asym_integrale(B0, D, f0, x0, center, frequency, amplitude, half_int_wind, i, j):
     condition = (frequency>=center-half_int_wind)&(frequency<=center+half_int_wind)
+    # Integrate over the complete requested window, including frequencies outside the measured data range.
+    integration_frequency = np.arange(center-half_int_wind, center+half_int_wind, 0.01)
     if np.isnan(B0)==True : area_SHO=np.nan
-    else : frequency_interp = np.arange(min(frequency[condition]),max(frequency[condition]),0.01); area_SHO = np.trapezoid(SHO_asym(B0, frequency_interp, x0, f0, D), frequency_interp)
-    area_datas = np.trapezoid(amplitude[condition], frequency[condition])
+    else : area_SHO = np.trapezoid(SHO_asym(B0, integration_frequency, x0, f0, D), integration_frequency)
+    if integration_frequency.size < 2:
+        area_datas = np.nan
+    else:
+        measured_data = np.interp(integration_frequency, frequency, amplitude, left=np.nan, right=np.nan)
+        missing_data = ~np.isfinite(measured_data)
+        if np.any(missing_data):
+            # Use the fitted asymmetrical model only where experimental data are unavailable.
+            measured_data[missing_data] = SHO_asym(B0, integration_frequency[missing_data], x0, f0, D)
+        area_datas = np.trapezoid(measured_data, integration_frequency)
     return area_SHO, area_datas
 
 @st.cache_data(max_entries=1, show_spinner="Fitting the asymetric SHO to all the position")
@@ -335,13 +345,17 @@ def SHO_asym_plot(frequency, amplitude, test_choice, center, freq_min, freq_max,
             f_maxHW, f_minHW = no_fit_FWHM_crossing(frequency_interp, y_fit, None, None)
             FWHM = f_maxHW - f_minHW
             integral_window=FWHM*per_integrale
+            integration_frequency = np.arange(f0-integral_window/2, f0+integral_window/2, 0.01)
+            # Display the same fitted reconstruction used for the integration window.
+            integration_model = SHO_asym(B0, integration_frequency, x0, f0, D)
+            integration_name = 'Integration range (fit reconstruction)'
             fig = go.Figure(layout=dict(height=500, width=900))
             fig.add_traces(go.Scatter(x=frequency, y=amplitude, mode='lines', name=test_choice,legendrank=1))
             fig.add_traces(go.Scatter(x=frequency_interp, y=amp_interp, mode='lines', name='Extrapolation',legendrank=2))
             fig.add_traces(go.Scatter(x=np.arange(min(frequency),max(frequency),0.01), y=SHO_asym(B0, np.arange(min(frequency),max(frequency),0.01), x0, f0, D), mode='lines', name='Asymetric SHO fit on all f with df = 0.01 kHz'))
             fig.add_traces(go.Scatter(x=frequency_interp, y=y_fit, mode='markers', name='Fit',legendrank=4))
             fig.add_shape(type="rect", xref="x", yref="paper", x0=min(frequency[condition]), legendrank=3, y0=0, x1=max(frequency[condition]), y1=np.max(amplitude), showlegend=True, line=dict(color="black", width=2), fillcolor='black', name='Fit window', opacity=0.1)
-            fig.add_traces(go.Scatter(x=frequency[(frequency>=(f0-integral_window/2))&(frequency<=(f0+integral_window/2))], y=SHO_asym(B0, frequency[(frequency>=f0-(integral_window/2))&(frequency<=f0+(integral_window/2))], x0, f0, D), fill='tozeroy', marker={'opacity': 0}, mode='markers', name='Integration range'))
+            fig.add_traces(go.Scatter(x=integration_frequency, y=integration_model, fill='tozeroy', marker={'opacity': 0}, mode='markers', name=integration_name))
             fig.update_yaxes(title='Amplitude (mV)', range=[0, np.max(amplitude)])
             fig.update_xaxes(title='Frequency (kHz)', range=[freq_min-window_freq, freq_max+window_freq])
             st.plotly_chart(fig)
