@@ -279,19 +279,10 @@ def SHO_asym_Fit_safe(frequency, amplitude, min_freq, max_freq, ylim, window_fre
 
 def SHO_asym_integrale(B0, D, f0, x0, center, frequency, amplitude, half_int_wind, i, j):
     condition = (frequency>=center-half_int_wind)&(frequency<=center+half_int_wind)
-    # Integrate over the complete requested window, including frequencies outside the measured data range.
-    integration_frequency = np.arange(center-half_int_wind, center+half_int_wind, 0.01)
+    integration_frequency = np.arange(center-half_int_wind, center+half_int_wind, 0.01) # Integrate the fitted asymmetrical SHO over the complete requested window.
     if np.isnan(B0)==True : area_SHO=np.nan
     else : area_SHO = np.trapezoid(SHO_asym(B0, integration_frequency, x0, f0, D), integration_frequency)
-    if integration_frequency.size < 2:
-        area_datas = np.nan
-    else:
-        measured_data = np.interp(integration_frequency, frequency, amplitude, left=np.nan, right=np.nan)
-        missing_data = ~np.isfinite(measured_data)
-        if np.any(missing_data):
-            # Use the fitted asymmetrical model only where experimental data are unavailable.
-            measured_data[missing_data] = SHO_asym(B0, integration_frequency[missing_data], x0, f0, D)
-        area_datas = np.trapezoid(measured_data, integration_frequency)
+    area_datas = np.trapezoid(amplitude[condition], frequency[condition])
     return area_SHO, area_datas
 
 @st.cache_data(max_entries=1, show_spinner="Fitting the asymetric SHO to all the position")
